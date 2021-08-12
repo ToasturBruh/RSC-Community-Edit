@@ -4,6 +4,8 @@
 @persist Loaded
 @trigger
 
+#Toast
+
 if(first() | dupefinished() | changed(FiremanFootplate)){
     #NOTE: I HIGHLY suggest you change the ShovelRate in RSC if you use this, otherwise the coal (probably) won't be added fast enough. 
     #Somewhere between 5 and 10 is a good rate.
