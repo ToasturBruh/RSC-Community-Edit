@@ -9,9 +9,11 @@
 if(first() | dupefinished()){
     
     #This is intended to be a tutorial, something to refer back to. Please start a new E2 and copy+paste what you need.
+    #For more advanced usages, please refer to the offical P2M wiki.
+    #https://github.com/shadowscion/Prop2Mesh/wiki
     
     #If you need the bodygroup number, spawn the prop and give it the desired bodygroups.
-    #Point your crosshair and it and run 'prop2mesh_debug_bodygroups'
+    #Point your crosshair and it and run 'prop2mesh_debug_bodygroups' through console.
     
     if(!->Base){ #If base isn't wired, set it to the chip model.
         Base = entity()
@@ -28,8 +30,8 @@ if(first() | dupefinished()){
         "ang" = ang(0,0,0),
         "scale" = vec(1,1,1),
         
-        "bodygroup" = 0,      #'prop2mesh_debug_bodygroups'
-        "submodels" = array(), #Blacklist for submeshes. Do bodygroups FIST as changing BG's will push the subeshes around.
+        "bodygroup" = 0,      #'prop2mesh_debug_bodygroups' (See text at top of E2.)
+        "submodels" = array(), #Blacklist for submeshes. Do bodygroups FIRST as changing BG's will push the subeshes around.
         "submodelswl" = 1,     #Turns the submodels list in to a whitelist.
         
         "flat" = 0,  #Render flat.
