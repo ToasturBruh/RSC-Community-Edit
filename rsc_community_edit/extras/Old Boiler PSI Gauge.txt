@@ -1,0 +1,43 @@
+@name Old Boiler PSI Gauge
+@inputs Input
+@outputs 
+@persist Ang
+@trigger 
+@model models/anytrains/props/detail/gauge_old_1.mdl
+
+#Toast
+
+if(first() | dupefinished()){
+    
+    entity():setSubMaterial(2,"models/gsgtrainprops/cab/gauge_boiler_pressure_400lb")
+    
+    A = 1
+    holoCreate(A, 
+    entity():toWorld(vec(0,0,0.45)), vec(1),
+    entity():toWorld(ang(0,9,0)))
+    holoColor(A, vec4(255,255,255,255))
+    holoModel(A, "plane")
+    holoScale(A, vec(0.5))
+    holoParent(A, entity())
+    holoMaterial(A,"models/gsgtrainprops/cab/needle_air_white")
+    
+    #[
+    A = 2
+    holoCreate(A, 
+    entity():toWorld(vec(0,0,0.1)), vec(1),
+    entity():toWorld(ang(0,0,0)))
+    holoColor(A, vec4(255,255,255,255))
+    holoModel(A, "models/anytrains/props/detail/gauge_old_1_pointer.mdl")
+    holoScale(A, vec(1,1,1))
+    holoParent(A, entity())
+    holoMaterial(A,"wtp/metal_2")
+    ]#
+}
+
+if(Ang != Input){
+    timer("ref",100)
+    if(clk("ref")){
+        Ang = clamp(Ang + (Input - Ang) / 2, 0, 400)
+        holoAng(1,entity():toWorld(ang(0,9-Ang*0.675,0)))
+    }
+}

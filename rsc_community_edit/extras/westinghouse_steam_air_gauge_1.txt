@@ -1,0 +1,56 @@
+@name Westinghouse Steam Air Gauge 1
+@inputs On MainRes EqualRes
+@outputs 
+@persist MainRes1 EqualRes1
+@trigger On
+@model models/toast/steam/steam_gauge_1.mdl
+
+if(first() | dupefinished()){
+    
+    GaugeMat = "models/toast/steam/gauge_air_wabco_steam_1"
+    Scale = 1
+    
+    A = 1
+    holoCreate(A, 
+    entity():toWorld(vec(0,0,0)*Scale),
+    vec(1,1,1)*Scale,
+    entity():toWorld(ang(0,0,0)))
+    holoColor(A, vec4(255,255,255,255))
+    holoModel(A, "models/toast/steam/steam_gauge_1.mdl")
+    holoParent(A, entity())
+    holoEntity(A):setSubMaterial(3,GaugeMat)
+    holoEntity(A):setSubMaterial(1,"models/proppertextures/brass_new")
+    holoBodygroup(A,1,1)
+    
+    A = 2
+    holoCreate(A, 
+    entity():toWorld(vec(0,0,0)*Scale),
+    vec(1,1,1)*Scale,
+    entity():toWorld(ang(0,-38,0)))
+    holoColor(A, vec4(80,80,110,255))
+    holoModel(A, "models/toast/steam/steam_needle_1.mdl")
+    holoParent(A, entity())
+    holoMaterial(A,"models/proppertextures/acrylic")
+    
+    A = 3
+    holoCreate(A, 
+    entity():toWorld(vec(0,0,0.05)*Scale),
+    vec(1,1,1)*Scale,
+    entity():toWorld(ang(0,-38,0)))
+    holoColor(A, vec4(200,36,36,255))
+    holoModel(A, "models/toast/steam/steam_needle_1.mdl")
+    holoParent(A, entity())
+    holoMaterial(A,"models/proppertextures/acrylic")
+    
+    entity():setAlpha(0)
+}
+
+if(On){
+    interval(150)
+    
+    EqualRes1 = EqualRes1 + ((clamp(EqualRes,5,200)) - EqualRes1) / 2
+    holoAng(2,entity():toWorld(ang(0,-31-(284*(EqualRes1/200)),0)))
+    
+    MainRes1 = MainRes1 + ((clamp(MainRes,5,200)) - MainRes1) / 2
+    holoAng(3,entity():toWorld(ang(0,-31-(284*(MainRes1/200)),0)))
+}

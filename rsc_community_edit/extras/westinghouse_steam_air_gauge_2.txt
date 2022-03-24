@@ -1,0 +1,56 @@
+@name Westinghouse Steam Air Gauge 2
+@inputs On BrakeCyl BrakePipe
+@outputs 
+@persist BrakeCyl1 BrakePipe1
+@trigger On
+@model models/toast/steam/steam_gauge_1.mdl
+
+if(first() | dupefinished()){
+    
+    GaugeMat = "models/toast/steam/gauge_air_wabco_steam_2"
+    Scale = 1
+    
+    A = 1
+    holoCreate(A, 
+    entity():toWorld(vec(0,0,0)*Scale),
+    vec(1,1,1)*Scale,
+    entity():toWorld(ang(0,0,0)))
+    holoColor(A, vec4(255,255,255,255))
+    holoModel(A, "models/toast/steam/steam_gauge_1.mdl")
+    holoParent(A, entity())
+    holoEntity(A):setSubMaterial(3,GaugeMat)
+    holoEntity(A):setSubMaterial(1,"models/proppertextures/brass_new")
+    holoBodygroup(A,1,1)
+    
+    A = 2
+    holoCreate(A, 
+    entity():toWorld(vec(0,0,0)*Scale),
+    vec(1,1,1)*Scale,
+    entity():toWorld(ang(0,-38,0)))
+    holoColor(A, vec4(255,255,255,255))
+    holoModel(A, "models/toast/steam/steam_needle_1.mdl")
+    holoParent(A, entity())
+    holoMaterial(A,"models/proppertextures/acrylic")
+    
+    A = 3
+    holoCreate(A, 
+    entity():toWorld(vec(0,0,0.05)*Scale),
+    vec(1,1,1)*Scale,
+    entity():toWorld(ang(0,-38,0)))
+    holoColor(A, vec4(200,36,36,255))
+    holoModel(A, "models/toast/steam/steam_needle_1.mdl")
+    holoParent(A, entity())
+    holoMaterial(A,"models/proppertextures/acrylic")
+    
+    entity():setAlpha(0)
+}
+
+if(On){
+    interval(150)
+    
+    BrakePipe1 = BrakePipe1 + ((clamp(BrakePipe,5,200)) - BrakePipe1) / 2
+    holoAng(2,entity():toWorld(ang(0,-31-(284*(BrakePipe1/200)),0)))
+    
+    BrakeCyl1 = BrakeCyl1 + ((clamp(BrakeCyl,5,200)) - BrakeCyl1) / 2
+    holoAng(3,entity():toWorld(ang(0,-31-(284*(BrakeCyl1/200)),0.1)))
+}

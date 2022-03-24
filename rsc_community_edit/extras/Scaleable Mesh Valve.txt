@@ -1,0 +1,67 @@
+@name Scaleable Mesh Valve
+@inputs Value
+@outputs 
+@persist Sound:string Color:vector Material:string Scale ValveAng Multiplier
+@persist P2M1:entity
+@trigger 
+
+#Toast
+
+if(first() | dupefinished()){
+    
+    Sound = "" #Sound that plays when valve is used.
+    Color = vec(255,36,36)
+    Material = "sprops/textures/sprops_metal5"
+    Scale = 0.5
+    Multiplier = 360 #Multiplier of the Value input, keep above 0 or it won't turn.
+    StartAng = 0 #Angle that the valve starts at.
+    Handle = 0
+    
+    A = 1
+    holoCreate(A, entity():toWorld(vec(0,0,1.7*Scale)), vec(1),
+    entity():toWorld(ang(0,StartAng,0)))
+    holoColor(A, vec4(110,110,110,255))
+    holoModel(A, "models/sprops/cylinders/size_1/cylinder_1_5x6.mdl")
+    holoScale(A, vec(0.5*Scale,0.5*Scale,1*Scale))
+    holoParent(A, entity())  
+    holoMaterial(A, Material) 
+    
+    P2MID = 1
+    P2M1 = p2mCreate(P2MID,
+    entity():toWorld(vec(0)),
+    entity():toWorld(ang(0)))
+    
+    P2M1:p2mPushModel(P2MID,"models/sprops/cylinders/size_1/cylinder_1_5x3.mdl",vec(0,0,4)*Scale,ang(0,0,0),vec(1.3,1.3,0.5)*Scale)
+    P2M1:p2mPushModel(P2MID,"models/sprops/cylinders/size_1/cylinder_1_5x12.mdl",vec(0,0,4)*Scale,ang(0,0,90),vec(0.55)*Scale)
+    P2M1:p2mPushModel(P2MID,"models/sprops/cylinders/size_1/cylinder_1_5x12.mdl",vec(0,0,4)*Scale,ang(90,0,0),vec(0.55)*Scale)
+    P2M1:p2mPushModel(P2MID,"models/sprops/geometry/fring_24.mdl",vec(0,0,4)*Scale,ang(0,0,90),vec(0.3,0.4,0.3)*Scale)
+    
+    if(Handle){
+    P2M1:p2mPushModel(P2MID,"models/sprops/cylinders/size_1/cylinder_1_5x12.mdl",vec(0,3,4)*Scale,ang(0,0,90),vec(0.55)*Scale)
+    P2M1:p2mPushModel(P2MID,"models/sprops/cylinders/size_1/cylinder_1_5x12.mdl",vec(0,6,4)*Scale,ang(0,0,90),vec(0.7,0.7,0.3)*Scale)
+    }
+    
+    P2M1:p2mBuild()
+    P2M1:p2mSetUV(P2MID,48)
+    P2M1:p2mSetMaterial(P2MID,Material)
+    P2M1:p2mSetColor(P2MID,Color)
+    P2M1:parentTo(holoEntity(1))
+
+}
+
+
+
+if(ValveAng != Value){
+    timer("ref",150)
+    if(clk("ref")){
+        ValveAng += ValveAng > Value ? -0.25 : 0.25
+        ValveAng = clamp(ValveAng, 0, 1)
+        holoAng(1,entity():toWorld(ang(0,StartAng+ValveAng*Multiplier,0)))
+        #P2M1:setAng(entity():toWorld(ang(0,StartAng+ValveAng*Multiplier,0)))
+    }
+}
+    
+
+if(changed(Value)){
+    entity():soundPlay(0,0,Sound)
+}
