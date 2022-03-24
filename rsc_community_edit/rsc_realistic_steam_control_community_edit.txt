@@ -1,15 +1,18 @@
 @name rsc_community_edit/RSC Realistic Steam Control Community Edit
 @inputs Ignite Damper AddCoal AddWater Drivers:array Pod:entity EmBrake Trucks:array
-@outputs Active Warmup BrakeInfo:array MPH KPH V Reverser R8 Throttle Brake Coal Water Steam Temp Cocks Firebox:vector CPU CONSTANT OM LBQ IHQ THQ ABQ Force BrakingForce BrakingMul
-@outputs Emergency LocoBrakePressure AB16M_Notch LB16M_Notch AB26L LB26L Spin Compressing
+@outputs Active Warmup MPH KPH V Reverser R8 Throttle Brake Coal Water Steam Temp Cocks Firebox:vector CPU CONSTANT  Force BrakingForce BrakingMul
+@outputs BrakeInfo:array MainRes EqualRes BrakePipe BrakeCyl
+@outputs Emergency AB16M_Notch LB16M_Notch AB26L LB26L Spin Compressing
 @persist [Controls Routing]:table Alternate:string ReverserF ReverserB Locked WQ Force Driver:entity Spin
 @persist [E O B]:entity Mul Band BrakeMul [Idle Fire Wheels Coaling Injector InjectorOff ChuffLO ChuffHI]:string ChuffLoops:array ChuffLoopThresholds:array UseKPH Fireman 
 @persist MainRes Compressing [CompressorOn CompressorOff]:string NumCompressors AirBrakeType IncreaseTrainBrake EqualRes [Lever_26L Lever_16M AirBrakeApply AirBrakeRelease Lever_LocoBrake LocoBrakeRelease]:string DecreaseTrainBrake 
-@persist CarCount BrakeLine IncreaseLocoBrake DecreaseLocoBrake LB26L_ClickQ  EmergencyBrake [EmergencyBrakeSound BrakeScreech]:string Moving BQ Threshold_Hard BPQ BrakeForce
+@persist CarCount BrakePipe IncreaseLocoBrake DecreaseLocoBrake LB26L_ClickQ  EmergencyBrake [EmergencyBrakeSound BrakeScreech]:string Moving BQ Threshold_Hard BPQ BrakeForce
 @persist CarCount_Init HandBrake HBQ MaxTrainBrakeForce MaxLocoBrakeForce Switching
 @persist ShovelRate BurnRate InjectRate BoilRate HeatRate ThetaDist CN CM Diameter ChuffQ DRV Johnson_Bar
 @persist SoundLevel EchoLevel DSPIDX Clt Version:string
 
+#@outputs OM LBQ IHQ THQ ABQ
+@persist OM LBQ IHQ THQ ABQ
 
 @inputs  Whistle1 Whistle2 Chuff1 Chuff2 Chuff3 Chuff4
 @outputs ParticleOn Particle:string WhistleParticle:string Safeties WOn Clt
@@ -24,19 +27,16 @@
 @trigger 
 @model models/beer/wiremod/watersensor.mdl
 
-#Master Version 1.6
-#Community Version 1.1
-#Rusty PT edit V0.25
 
 #Changelog
 
-#DSP edit by Toast
-#Edited again by Mag for sound improvements lul
-#Edited again by The Big E to make it more Fun To Run (TM) (Wheelslip, built-in particle systems)
-#Edited again by The Big E again to make the chuffing sync better with wheel rotation
+#Credits
+#Magnum - Main code and sound improvements
+#Rusty  - PT brake edit, particles
+#Toastur, Big E - Simulation and sound improvements
 
-#Community Edit V1.2
-Version = "1.2"
+#Community Edit V1.2.0
+Version = "1.2.1"
 
 #[
 SETUP INSTRUCTIONS:
@@ -298,7 +298,7 @@ if(first()|dupefinished()){
     
     MainRes = 0
     EqualRes = 0
-    BrakeLine = 0
+    BrakePipe = 0
     BrakeCyl = 0
     AirBrakeType = 0
     
@@ -309,7 +309,7 @@ if(first()|dupefinished()){
     LocoBrakePressure = 0
     #ER = 0
     
-    BrakeInfo = array(MainRes,EqualRes,BrakeLine,LocoBrakePressure,BrakeCyl)
+    BrakeInfo = array(MainRes,EqualRes,BrakePipe,LocoBrakePressure,BrakeCyl)
     
     LB26L_ClickQ = 0
     BPQ = 0
@@ -327,7 +327,7 @@ if(first()|dupefinished()){
     Threshold_Hard = 0.25
     
     runOnHTTP(1)
-    httpRequest("https://raw.githubusercontent.com/ToasturBruh/Toastur-Code-Garbage/main/gmod/E2/versions/RSC%3ACE.txt")
+    httpRequest("https://raw.githubusercontent.com/ToasturBruh/RSC-Community-Edit/main/version.txt")
     timer("vto",5000)
 }
 if(clk("vto")){
@@ -341,17 +341,19 @@ if(clk("vto")){
     local VExp = Version:explode(".")
     local VMaj = VExp[1,string]:toNumber()
     local VMin = VExp[2,string]:toNumber()
-    
+    local VRev = VExp[3,string]:toNumber()
     
     local MVer = httpData()
     local MVExp = MVer:explode(".")
     local MVMaj = MVExp[1,string]:toNumber()
     local MVMin = MVExp[2,string]:toNumber()
+    local MVRev = MVExp[3,string]:toNumber()
     
-    local Conflict = ((MVMaj > VMaj) | (MVMin > VMaj))
+    local Conflict = ((MVMaj != VMaj) | (MVMin != VMaj) | (MVRev != VRev))
     
-    if((MVMaj > VMaj) | (MVMin > VMin)){
+    if(Conflict){
         print("RSC is out of date! Your version: "+Version+" Master version: "+MVer)
+        print("GitHub: https://github.com/ToasturBruh/RSC-Community-Edit/")
         O:soundPlay(0,0,"")
     }else{
         print("RSC is up to date!")
@@ -483,22 +485,22 @@ if(clk("interval")){
         #Brake Line
         #----------
         if(changed(CarCount) & (($CarCount)>0)){
-            BrakeLine *= (CarCount - $CarCount)/CarCount
+            BrakePipe *= (CarCount - $CarCount)/CarCount
         }
-        if(BrakeLine > EqualRes){
+        if(BrakePipe > EqualRes){
             #Apply
-            BrakeLine -= 1/(CarCount/16 + 1)
+            BrakePipe -= 1/(CarCount/16 + 1)
             
             
-        }elseif(BrakeLine < EqualRes){
+        }elseif(BrakePipe < EqualRes){
             #Release
             if(MainRes >= 30){
                 MainRes -= 0.125*(CarCount/4 + 1)/NumCompressors
-                BrakeLine += 1/(CarCount/16 + 1)
+                BrakePipe += 1/(CarCount/16 + 1)
             }
         }
-        if(abs(EqualRes-BrakeLine)<=(1/(CarCount/16 + 1))){
-            BrakeLine = EqualRes
+        if(abs(EqualRes-BrakePipe)<=(1/(CarCount/16 + 1))){
+            BrakePipe = EqualRes
         }
         
         #----------------
@@ -530,19 +532,19 @@ if(clk("interval")){
         }elseif((LB16M_Notch==-1) & (LocoBrakePressure>0)){
             LocoBrakePressure--
             
-            if(LocoBrakePressure>(90-BrakeLine)){MainRes -= 0.125/NumCompressors}
+            if(LocoBrakePressure>(90-BrakePipe)){MainRes -= 0.125/NumCompressors}
         }
         
         #Cylinder
-        BrakeCyl = max(LocoBrakePressure,90-BrakeLine)/2.5
+        BrakeCyl = max(LocoBrakePressure,90-BrakePipe)/2.5
         
         #Brake Info Array
-        BrakeInfo = array(MainRes,EqualRes,BrakeLine,LocoBrakePressure,BrakeCyl)
+        BrakeInfo = array(MainRes,EqualRes,BrakePipe,LocoBrakePressure,BrakeCyl)
         
         #Emergency Brake
         if((EmergencyBrake | EmBrake) & !Emergency){
             Emergency = 1
-            BrakeLine = 0
+            BrakePipe = 0
             EqualRes = 0
             AB16M_Notch = 2
             
@@ -599,8 +601,8 @@ if(clk("interval")){
             if(CarCount<1){
                 CarCount = E:extraProps(CarCount_Init)
             }
-            local TBF = CarCount*(90-BrakeLine)*MaxTrainBrakeForce
-            local LBF = ((90-BrakeLine)>LocoBrakePressure ? (90-BrakeLine) : LocoBrakePressure)*MaxLocoBrakeForce
+            local TBF = CarCount*(90-BrakePipe)*MaxTrainBrakeForce
+            local LBF = ((90-BrakePipe)>LocoBrakePressure ? (90-BrakePipe) : LocoBrakePressure)*MaxLocoBrakeForce
             BrakingForce = sign(V)*(LBF+TBF)
             
         }else{
