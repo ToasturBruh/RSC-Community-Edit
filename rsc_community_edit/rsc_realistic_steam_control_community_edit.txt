@@ -36,7 +36,7 @@
 #Toastur, Big E - Simulation and sound improvements
 
 #Community Edit V1.2.0
-Version = "1.2.1"
+Version = "1.3.0"
 
 #[
 SETUP INSTRUCTIONS:
@@ -349,8 +349,8 @@ if(clk("vto")){
     local MVMin = MVExp[2,string]:toNumber()
     local MVRev = MVExp[3,string]:toNumber()
     
-    local Conflict = ((MVMaj != VMaj) | (MVMin != VMaj) | (MVRev != VRev))
-    
+    local Conflict = ((MVMaj != VMaj) | (MVMin != VMin) | (MVRev != VRev))
+
     if(Conflict){
         print("RSC is out of date! Your version: "+Version+" Master version: "+MVer)
         print("GitHub: https://github.com/ToasturBruh/RSC-Community-Edit/")
