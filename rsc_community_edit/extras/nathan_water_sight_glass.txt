@@ -1,0 +1,72 @@
+@name rsc_community_edit/extras/nathan_water_sight_glass
+@inputs On Water
+@outputs 
+@persist Short Scale
+@trigger On
+@model models/toast/steam/water_sight_glass_1_14in.mdl
+
+if(first() | dupefinished()){
+    
+    Short = 0
+    Scale = 1
+    
+    if(Short){
+        A = 1
+        holoCreate(A, 
+        entity():toWorld(vec(0,0,0)*Scale),
+        vec(1,1,1)*Scale,
+        entity():toWorld(ang(0,0,0)))
+        holoColor(A, vec4(255,255,255,255))
+        holoModel(A, "models/toast/steam/water_sight_glass_1_14in.mdl")
+        holoParent(A, entity())
+        holoBodygroup(A,1,1)
+        holoEntity(A):setSubMaterial(3,"models/proppertextures/glass_new")
+        holoMaterial(A,"")
+        
+        A = 2 #Water holo
+        holoCreate(A, 
+        entity():toWorld(vec(0,-0.3,3.75)*Scale),#vec(0,-0.3,3.75) filled, 0.5 unfilled
+        vec(0.05,0.1,0.5)*Scale, #vec(0.05,0.1,0.5) filled
+        entity():toWorld(ang(0,0,0)))
+        holoColor(A, vec4(50,100,255,200))
+        holoModel(A, "hq_cylinder")
+        holoParent(A, entity())
+        holoMaterial(A,"")
+    }else{
+        A = 1
+        holoCreate(A, 
+        entity():toWorld(vec(0,0,0)*Scale),
+        vec(1,1,1)*Scale,
+        entity():toWorld(ang(0,0,0)))
+        holoColor(A, vec4(255,255,255,255))
+        holoModel(A, "models/toast/steam/water_sight_glass_1_14in.mdl")
+        holoParent(A, entity())
+        holoEntity(A):setSubMaterial(3,"models/proppertextures/glass_new")
+        holoMaterial(A,"")
+        
+        A = 2 #Water holo
+        holoCreate(A, 
+        entity():toWorld(vec(0,-0.3,-6.5)*Scale),#vec(0,-0.3,0) filled
+        vec(0.05,0.1,0)*Scale, #vec(0.05,0.1,1.07) filled
+        entity():toWorld(ang(0,0,0)))
+        holoColor(A, vec4(50,100,255,200))
+        holoModel(A, "hq_cylinder")
+        holoParent(A, entity())
+        holoMaterial(A,"")
+    }
+    
+    entity():setAlpha(0)
+}
+
+if(On){
+    interval(100)
+    local WaterN = clamp(Water/100,0,1)
+    
+    if(Short){
+        holoPos(2,entity():toWorld(vec(0,-0.3,3.75*(WaterN))*Scale))
+        holoScale(2,vec(0.05,0.05,(0.5*WaterN))*Scale)
+    }else{
+        holoPos(2,entity():toWorld(vec(0,-0.3,0.5*(1-WaterN))*Scale))
+        holoScale(2,vec(0.05,0.05,(1.07*WaterN))*Scale)
+    }
+}

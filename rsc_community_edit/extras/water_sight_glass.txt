@@ -1,0 +1,43 @@
+@name rsc_community_edit/extras/water_sight_glass
+@inputs On Water
+@outputs 
+@persist Short Scale
+@trigger On
+@model models/toast/steam/water_sight_glass_1_14in.mdl
+
+if(first() | dupefinished()){
+    
+    Short = 0
+    Scale = 1
+    
+    A = 1
+    holoCreate(A, 
+    entity():toWorld(vec(0,0,0)*Scale),
+    vec(1,1,1)*Scale,
+    entity():toWorld(ang(0,0,0)))
+    holoColor(A, vec4(255,255,255,255))
+    holoModel(A, "models/toast/steam/water_sight_glass_1_14in.mdl")
+    holoParent(A, entity())
+    holoEntity(A):setSubMaterial(3,"")
+    holoMaterial(A,"")
+    
+    A = 2
+    holoCreate(A, 
+    entity():toWorld(vec(0,-0.3,0)*Scale),
+    vec(0.05,0.1,1.07)*Scale,
+    entity():toWorld(ang(0,0,0)))
+    holoColor(A, vec4(50,100,255,200))
+    holoModel(A, "models/holograms/cylinder.mdl")
+    holoParent(A, entity())
+    holoMaterial(A,"")
+    
+    entity():setAlpha(0)
+}
+
+if(On){
+    timer("think",100)
+    
+    if(clk("think")){
+        
+    }
+}

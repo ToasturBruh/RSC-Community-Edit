@@ -1,0 +1,153 @@
+@name rsc_community_edit/extras/whistle_and_bell_combo
+@inputs Pull Bell WhistleModel:entity BellModel:entity
+@outputs BellToggle
+@outputs QuillSmooth Whistle #Debug
+@persist WhistleSound:string BellSound:string BellEnd:string WhistleEnd:string WhistleVolume BellVolume WhistlePitch BellPitch WhistleDistance WhistleEcho BellDistance Fade WhistleTrigger BellToggle Bell
+@persist WhistleModelM:entity BellModelM:entity
+@persist QuillSmooth
+@trigger Pull Bell
+#By Toast
+if(first() | dupefinished()){
+    Fade = 0 #How many seconds it takes the whistle to fade, leave at zero to use an end sound.
+    
+    WhistleSound   = "/braixssoundcollection/whistles/usa/3chime/ndem_3002_3chime_loop.wav"
+    WhistleEnd     = "/braixssoundcollection/whistles/usa/3chime/ndem_3002_3chime_end.wav"
+    BellSound   = "gsgtrainsounds/bells/graham-white_e-bell_loop.wav"
+    BellEnd     = "gsgtrainsounds/bells/graham-white_e-bell_end.wav"
+    
+    WhistleVolume = 100
+    BellVolume = 100
+    
+    WhistlePitch = 100
+    BellPitch = 100
+    
+    WhistleDistance = 90 #How far people can hear the sound, 80 is a good number
+    WhistleEcho = 120
+    BellDistance = 80 #Same as above, just the bell.
+    
+    #WhistleTrigger = 0 #If the bell is tripped by the Whistle. If this is on, Bell MUST be wired to a NON-toggled button.
+    
+    if(!->WhistleModel){
+        WhistleModelM = entity()
+    }else{
+        WhistleModelM = WhistleModel
+    }
+    if(!->BellModel){
+        BellModelM = entity()
+    }else{
+        BellModelM = BellModel
+    }
+    
+    holoCreate(1,WhistleModelM:toWorld(vec()))
+    holoParent(1,WhistleModelM)
+    holoAlpha(1,0)
+    
+    holoCreate(2,WhistleModelM:toWorld(vec()))
+    holoParent(2,WhistleModelM)
+    holoAlpha(2,0)
+    
+    holoCreate(3,WhistleModelM:toWorld(vec()))
+    holoParent(3,WhistleModelM)
+    holoAlpha(3,0)
+    
+    holoCreate(4,WhistleModelM:toWorld(vec()))
+    holoParent(4,WhistleModelM)
+    holoAlpha(4,0)
+    
+    holoCreate(5,BellModelM:toWorld(vec()))
+    holoParent(5,BellModelM)
+    holoAlpha(5,0)
+    
+    #print(WhistleModelM)
+}
+
+#Quilling
+
+if(Pull > 0){
+    Whistle = 1
+}else{
+    Whistle = 0
+}
+
+if(Whistle){
+    runOnTick(1)
+    
+    QuillSmooth = clamp(QuillSmooth + (Pull - QuillSmooth) / 4, 0, 1)
+    
+    soundVolume("Whistle_loop",QuillSmooth)
+    soundVolume("Whistle_loop_e",QuillSmooth)
+    
+    soundPitch("Whistle_loop",80+(QuillSmooth*20))
+    soundPitch("Whistle_loop_e",80+(QuillSmooth*20))
+}else{
+    runOnTick(0)
+    soundVolume("Whistle_end",QuillSmooth)
+    soundVolume("Whistle_end_e",QuillSmooth)
+    
+    soundPitch("Whistle_end",80+(QuillSmooth*20))
+    soundPitch("Whistle_end_e",80+(QuillSmooth*20))
+    
+}
+
+#Sound play
+
+if(changed(Whistle) & Whistle){
+    QuillSmooth = Pull
+    #soundStop("Whistle_end")
+    #soundStop("Whistle_end_e")
+    
+    holoEntity(1):soundPlay("Whistle_loop",0,WhistleSound)
+    soundLevel("Whistle_loop",WhistleDistance)
+    #soundDSP(1,0)
+    soundVolume("Whistle_loop",Pull)
+    soundPitch("Whistle_loop",80+(Pull*20))
+    
+    holoEntity(2):soundPlay("Whistle_loop_e",0,WhistleSound)
+    soundLevel("Whistle_loop_e",WhistleDistance+WhistleEcho)
+    soundDSP("Whistle_loop_e",16)
+    soundVolume("Whistle_loop_e",Pull)
+    soundPitch("Whistle_loop_e",80+(Pull*20))
+    
+}
+if(changed(Whistle) & Whistle == 0){
+    if(Fade == 0){
+        soundStop("Whistle_end")
+        soundStop("Whistle_end_e")
+        
+        soundStop("Whistle_loop",0.1)
+        soundStop("Whistle_loop_e",0.1)
+        
+        holoEntity(3):soundPlay("Whistle_end",0,WhistleEnd)
+        soundLevel("Whistle_end",WhistleDistance)
+        #soundDSP(3,0)
+        soundVolume("Whistle_end",QuillSmooth)
+        soundPitch("Whistle_end",80+(QuillSmooth*20))
+        
+        
+        holoEntity(4):soundPlay("Whistle_end_e",0,WhistleEnd)
+        soundLevel("Whistle_end_e",WhistleDistance+WhistleEcho)
+        soundDSP("Whistle_end_e",16)
+        soundVolume("Whistle_end_e",QuillSmooth)
+        soundPitch("Whistle_end_e",80+(QuillSmooth*20))
+        QuillSmooth = 0
+    }
+    if(Fade > 0){soundStop(1,Fade)}
+}
+
+
+if(changed(Bell) & Bell){
+    
+    holoEntity(5):soundPlay(5,0,BellSound)
+    #soundLevel(5,BellDistance)
+    soundVolume(5,BellVolume/100)
+    soundPitch(5,BellPitch)
+}
+if(changed(Bell) & !Bell){
+    
+    holoEntity(5):soundPlay(5,0,BellEnd)
+    #soundLevel(5,BellDistance)
+    soundVolume(5,BellVolume/100)
+    soundPitch(5,BellPitch)
+}
+
+

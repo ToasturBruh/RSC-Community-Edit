@@ -73,7 +73,7 @@ Happy Steaming!
 
 if(first()|dupefinished()){
     
-    Mul = 20 #The General Force Multiplier, determines pulling power. 200 is a good value.
+    Mul = 306 #The General Force Multiplier, determines pulling power. 200 is a good value.
     Band = 15 #The "Power Band." The (Highly Idealized) speed range (in MPH) over which you can go before you need to reduce the reverser value.
     #In Practice it's closer to Half what you have here. 30 is a good value.
     BrakeMul = 1 #The Braking force multiplier, independent of the trainline airbrakes. 2 is a good value to start.

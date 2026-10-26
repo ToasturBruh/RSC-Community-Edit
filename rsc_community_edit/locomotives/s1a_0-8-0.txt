@@ -1,0 +1,83 @@
+@name rsc_community_edit/locomotives/s1a_0-8-0
+@persist Name:string
+
+#Wheels
+@persist Diameter Axles
+
+#Boiler
+@persist BoilerPSI BoilerMaxPSI MaxEvapRate HeatingSurfaceArea FireboxSurfaceArea TubeSurfaceArea
+
+#Cylinder
+@persist CylinderSteamUse CylinderVolume CylinderCount Cutoff CutoffMax CutoffMin SteamVolume
+@outputs Cutoff
+
+#Power/Weight
+@persist TE_Starting Weight WeightHalfKg SlipLimit IHP TE_Force TE_LBF WheelRPM WheelRPH PistonRPM
+@outputs TE_Force TE_LBF
+
+#Brakes
+@persist NumCompressors
+
+#Sounds
+@persist [QuarterSounds ChuffLoops LoopThresholds]:table SequentialBarks SoundLevel EchoLevel
+
+Name            = "S1a 0-8-0"
+Weight          = 247000 #Weight on DRIVING AXLES
+TE_Starting     = 63000 #or "maximum". Unsure? Use: https://www.steamlocomotive.com/misc/tractiveEffort.php
+FoA             = 4  #Factor of adhesion. (1/FoA)
+Diameter        = 54 #Wheel DIAMETER, in inches.
+Axles           = 4 #Your DRIVING axle count.
+GearingRatio    = 1/1 #Useful for something like a Shay.
+NumCompressors  = 1
+
+SlipLimit       = Weight*(1/FoA)
+
+BoilerMaxPSI    = 220 #Your maximum permissable operating boiler pressure.
+SteamVolume     = 1.96 #Get the number from this link > https://www.engineeringtoolbox.com/saturated-steam-properties-d_273.html
+PistonDiameter  = 25 #Cylinder bore
+PistonStroke    = 28 #Cylinder length
+CylinderCount   = 2  #How many?
+
+CutoffMax = 0.85  
+CutoffMin = 0.15
+
+HeatingSurfaceArea  = 5100 #Sqft of heating surface area. Firebox AND tubes.
+EvaporativeSurface  = 0 #Firebox area exposed to water.
+SuperheaterSurface  = 0 #Tube surface area. (2*pi*r*h + 2*pi*r^2)*TubeCount
+IHP_Efficiency   = 2 #How many sqft of heating surface per indicated horsepower.
+                     #2 with superheaters, 2.5 without. (roughly)
+
+
+#Sounds
+
+SequentialBarks = 1 #Should the barks be played in order or at random?
+SoundLevel = 85
+EchoLevel = 120
+
+QuarterSounds = table(
+"/train sounds/de/steam/chuff/mixd 1/piston_stroke1.wav",
+"/train sounds/de/steam/chuff/mixd 1/piston_stroke2.wav",
+"/train sounds/de/steam/chuff/mixd 1/piston_stroke3.wav",
+"/train sounds/de/steam/chuff/mixd 1/piston_stroke4.wav"
+)
+
+ChuffLoops = table(
+"/train sounds/de/steam/chuff/mixd 1/steam_loop_100rpm.wav",
+"/train sounds/de/steam/chuff/mixd 1/steam_loop_125rpm.wav",
+"/train sounds/de/steam/chuff/mixd 1/steam_loop_150rpm.wav",
+"/train sounds/de/steam/chuff/mixd 1/steam_loop_175rpm.wav",
+"/train sounds/de/steam/chuff/mixd 1/steam_loop_200rpm.wav",
+"/train sounds/de/steam/chuff/mixd 1/steam_loop_300rpm.wav"
+)
+
+LoopThresholds = table(
+100,
+125,
+150,
+175,
+200,
+300
+)
+
+#Config check
+ThisConfigVer = "0.0.0"

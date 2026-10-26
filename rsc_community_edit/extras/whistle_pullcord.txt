@@ -1,0 +1,30 @@
+@name rsc_community_edit/extras/whistle_pullcord
+@inputs Grab Elevation
+@outputs ElevationDelta Pull
+@persist ElevationQ ElevationDelta QuillC
+@trigger Grab
+
+if(Grab){
+    runOnTick(1)
+}
+
+if(~Grab & Grab){
+    ElevationQ = Elevation
+    #EyeDist = 0
+    
+}
+
+
+if(Grab){
+    Whistle = 1
+    ElevationDelta = Elevation - ElevationQ
+    QuillC = clamp(-1*ElevationDelta/20,0,1)
+    
+    Pull = clamp(Pull + (QuillC - Pull) / 4, 0, 1)
+}else{
+    runOnTick(0)
+    Pull = 0
+    Whistle = 0
+    ElevationDelta = 0
+}
+

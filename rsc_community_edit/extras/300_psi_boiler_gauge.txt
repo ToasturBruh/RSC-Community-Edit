@@ -1,0 +1,57 @@
+@name rsc_community_edit/extras/300 PSI Boiler Gauge
+@inputs On PSI DoBark
+@outputs PSI1
+@persist PSI1 MaxBoilerPSI
+@trigger On DoBark
+@model models/toast/steam/steam_gauge_1.mdl
+
+if(first() | dupefinished()){
+    
+    #You can wire 'DoBark' to an exhaust output to dip the pressure during the cycle.
+    
+    GaugeMat = "models/toast/steam/gauge_psi_300"
+    #Unused MaxBoilerPSI = 300 #This is assuming the PSI input is an arbitrary "100" value.
+    Scale = 1
+    
+    A = 1
+    holoCreate(A, 
+    entity():toWorld(vec(0,0,0)*Scale),
+    vec(1,1,1)*Scale,
+    entity():toWorld(ang(0,0,0)))
+    holoColor(A, vec4(255,255,255,255))
+    holoModel(A, "models/toast/steam/steam_gauge_1.mdl")
+    holoParent(A, entity())
+    holoEntity(A):setSubMaterial(3,GaugeMat)
+    holoEntity(A):setSubMaterial(1,"models/proppertextures/brass_new")
+    holoBodygroup(A,1,1)
+    
+    A = 2
+    holoCreate(A, 
+    entity():toWorld(vec(0,0,0)*Scale),
+    vec(1,1,1)*Scale,
+    entity():toWorld(ang(0,-45,0)))
+    holoColor(A, vec4(80,80,110,255))
+    holoModel(A, "models/toast/steam/steam_needle_1.mdl")
+    holoParent(A, entity())
+    holoMaterial(A,"models/proppertextures/acrylic")
+    #[
+    A = 3
+    holoCreate(A, 
+    entity():toWorld(vec(0,0,0.05)*Scale),
+    vec(1,1,1)*Scale,
+    entity():toWorld(ang(0,-38,0)))
+    holoColor(A, vec4(200,36,36,255))
+    holoModel(A, "models/toast/steam/steam_needle_1.mdl")
+    holoParent(A, entity())
+    holoMaterial(A,"models/proppertextures/acrylic")
+    ]#
+    entity():setAlpha(0)
+}
+
+if(On){
+    interval(150)
+    PSI = PSI - (sign(DoBark) * 0.75)
+    PSI1 = PSI1 + (PSI - PSI1) / 2
+    holoAng(2,entity():toWorld(ang(0,-45-(PSI1/300)*270,0)))
+
+}

@@ -1,0 +1,31 @@
+@name rsc_community_edit/controls/default
+@inputs 
+@outputs 
+@persist [Controls Routing]:table
+
+
+#--------------
+#Control Config
+#--------------
+
+#You can actually change this, but be careful.
+#Wiremod key names do not always coincide with source key names!
+
+Alternate = "lshift" #When pressing this key, all controls with "!ALT" next to them will be triggered, and all the other will be ignored.
+
+Controls["ReverserF",string]        = "w"
+Controls["ReverserB",string]        = "s"
+
+Controls["IncreaseThrottle",string] = "d"
+Controls["DecreaseThrottle",string] = "a"
+
+Controls["IncreaseTrainBrake",string]    = "w !ALT"
+Controls["DecreaseTrainBrake",string]    = "s !ALT"
+
+Controls["IncreaseLocoBrake",string] = "r !ALT"
+Controls["DecreaseLocoBrake",string] = "f !ALT"
+
+
+Controls["EmergencyBrake",string] = "b"
+
+Controls["HandBrake",string] = "h" 

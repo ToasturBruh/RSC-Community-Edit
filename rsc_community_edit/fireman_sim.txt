@@ -1,0 +1,196 @@
+@name rsc_community_edit/fireman_sim
+@inputs ShovelCoal
+@outputs 
+@persist Dt Interval AmbientTemp
+
+#Boiler
+@persist BoilerL BoilerD BoilerCap BoilerVolume WaterTemp WaterDensity WaterMass
+
+#Fire
+@persist GrateL GrateW FireboxHeatCapacity
+@persist GrateMass GrateEnergy CoalDensity CoalVolume CoalEnergy ShovelVolume
+@persist FireTemp Blower Damper Draft AirFuelRatio AirHeatCapacity
+@persist FireboxOutput CombustionRate BurnRate
+
+@trigger ShovelCoal
+
+#Holos
+@persist Scale CoalHolo FireHolo
+
+if(first() | dupefinished()){
+    
+    #[
+          /  M  \
+         /-------\
+        / D  |  V \
+    ]#
+    
+    #[
+        BTU Generation = Lbs coal burned/s * Coal Density
+        BTU is lost from transferring heat to boiler
+        Temp (F) change is BTU net / Firebox thermal capacity
+        Thermal capacity is BTU required to raise the firebox by 1 F
+        Firebox capacity can be specifically calculated per-locomotive based on fire arch, however we'll just approximate.
+        100-200 for light engines, 200-700 for medium-large engines and 700-1500 for heavy engines. (BTU/F)
+        Net BTU is firebox production minus boiler loss
+        
+        100lb/coal/hour per sqft of grate area at white hot fire - rule of thumb per PRR(?)
+        0.03 lb/coal/second/grate sqft
+        0.0025/lb/coal/second/grate sqin
+        Coal is a smolder at ~1000 F and white hot at ~2700
+    ]#
+    
+    AmbientTemp = 65
+    
+    BoilerL = 270
+    BoilerD = 80
+    
+    BoilerCap = 5000 #Gallons
+    
+    GrateL = 100
+    GrateW = 100
+    FireboxH = 60
+    
+    GrateMass  = 0 #How many lbs of coal are on the grate.
+    GrateBurnRate = 0#Lb/hr 
+    CoalDensity = 55 #lb/ft^3, bulk density - Anthracite ~ 55, Bituminous ~50, Pinewood ~30
+    CoalEnergy  = 13000 #BTU/lb
+    FireboxHeatCapacity = 600 #600 100-200 for light engines, 200-700 for medium-large engines and 700-1500 for heavy engines. (BTU/F)
+    FireTemp = 1000 #F
+    
+    
+    GrateEnergy = 0 #Amount of energy sitting on the grate
+    
+    ShovelVolume = 0.125 #How much volume your shovel adds in cu/ft^3
+    
+    Blower  = 0
+    Damper  = 0
+    Draft   = 0 #lbs/m
+    AirHeatCapacity = 0.24 #BTU/Lb/F
+    AirFuelRatio = 12 #12:1
+    #Simulation will assume 12 lbs of air to 1 lb coal for a perfect burn.
+    
+    
+    BoilerVolume = BoilerCap/7.48 #Gallons to ft^3
+    WaterTemp = AmbientTemp #Fahrenheit, sorry
+    WaterDensity = 60 #lb/ft^3 - ~62.5 at freezing, ~59.85 at boiling (212)
+    WaterMass = WaterDensity * BoilerVolume
+    BoilerEnthalpy = 0 #H = U + pV
+    
+    function vector scale(Dimension:vector){return Dimension/12}
+    
+    
+    Scale = 1
+    
+    A = 1 #Boiler body
+    holoCreate(A, 
+    entity():toWorld(vec(0,0,0)*Scale),
+    scale(vec(BoilerD,BoilerD,BoilerL))*Scale*-1,
+    entity():toWorld(ang(90,0,0)))
+    holoColor(A, vec4(36,36,36,255))
+    holoModel(A, "cylinder")
+    holoParent(A, entity())
+    holoMaterial(A,"")
+    
+    A++ #Boiler water
+    holoCreate(A, 
+    entity():toWorld(vec(0,0,0)*Scale),
+    scale(vec(BoilerD-4,BoilerD-4,BoilerL-4))*Scale,
+    entity():toWorld(ang(90,0,0)))
+    holoColor(A, vec4(0,0,255,200))
+    holoModel(A, "cylinder")
+    holoParent(A, entity())
+    holoMaterial(A,"")
+    holoClipEnabled(A,1,1)
+    holoClip(A,vec(-20,0,0),vec(1,0,0),0)
+    
+    A++ #Boiler steam
+    holoCreate(A, 
+    entity():toWorld(vec(0,0,0)*Scale),
+    scale(vec(BoilerD-4,BoilerD-4,BoilerL-4))*Scale,
+    entity():toWorld(ang(90,0,0)))
+    holoColor(A, vec4(255,255,255,50))
+    holoModel(A, "cylinder")
+    holoParent(A, entity())
+    holoMaterial(A,"")
+    holoClipEnabled(A,1,1)
+    holoClip(A,vec(-20,0,0),vec(-1,0,0),0)
+    
+    #Fire----
+    
+    A++ #grate area
+    FireHolo = A
+    holoCreate(A, 
+    entity():toWorld(vec((BoilerL/2)-GrateL/2,0,(-BoilerD/2)-15)*Scale),
+    scale(vec(GrateL,GrateW,1))*Scale*-1,
+    entity():toWorld(ang(0,0,0)))
+    holoColor(A, vec(0,0,0))
+    holoModel(A, "plane")
+    holoParent(A, entity())
+    holoMaterial(A,"")
+    
+    A++ #grate coal
+    CoalHolo = A
+    holoCreate(A, 
+    entity():toWorld(vec((BoilerL/2)-GrateL/2,0,(-BoilerD/2)-15)*Scale),
+    scale(vec(GrateL,GrateW,1))*Scale*-1,
+    entity():toWorld(ang(0,0,0)))
+    holoColor(A, vec4(255,255,255,255))
+    holoModel(A, "plane")
+    holoParent(A, entity())
+    holoMaterial(A,"models/proppertextures/met_tf_coal1")
+    
+    Dt = 1/20
+    Interval = Dt*1000
+}
+
+interval(Interval)
+
+if(ShovelCoal & ~ShovelCoal){
+    local CoalToAdd = CoalDensity * ShovelVolume #Mass of coal shovel to add
+    CoalVolume = GrateMass/CoalDensity #Calculate coal density
+    GrateMass = GrateMass + CoalToAdd #Calculate coal mass (lb)
+    
+    local GrateLFt = GrateL/12 #Convert to feet
+    local GrateWFt = GrateW/12
+    local CoalZ = (CoalVolume/(GrateLFt*GrateWFt))*12 #Convert back to inches
+    
+    holoPos(CoalHolo,entity():toWorld(vec((BoilerL/2)-GrateL/2,0,(-BoilerD/2)-15)*Scale)+vec(0,0,CoalZ))
+}
+
+GrateEnergy = GrateMass * CoalEnergy #Calculate BTU of grate
+#1 BTU to increase 1lb of water's temp by 1F
+#970 BTU/lb at boiling point to generate steam.
+
+local TheoreticalTemp = GrateEnergy/FireboxHeatCapacity
+local RequiredAir = GrateMass * AirFuelRatio
+Draft = RequiredAir
+
+CombustionRate = FireTemp 
+
+if(GrateMass > 0){
+    BurnRate = ((FireTemp-900)/2700)*0.0025*GrateL*GrateW*Dt #Burned this tick
+    
+    GrateMass -= (BurnRate)
+    #if(GrateMass < 0){GrateMass = 0}
+}else{
+    GrateMass = 0
+    BurnRate = 0
+}
+
+FireboxOutput = BurnRate*CoalEnergy #BTU
+FireTemp += (FireboxOutput/FireboxHeatCapacity)
+
+#holoColor(FireHolo,vec(128,0,0)+(vec(128,255,255)*((FireTemp-1000)/2700)))
+
+print(_HUD_PRINTCENTER,
+"Coal LBS: " + GrateMass +
+"\nCoal Volume: " + CoalVolume +
+"\nGrate Energy: " + GrateEnergy +
+"\nTargetTemp: " + TheoreticalTemp +
+"\nOptimal Draft: " + RequiredAir +
+"\nBurn Rate:" + BurnRate +
+"\nFirebox Output:" + FireboxOutput +
+"\nFirebox Temp:" + FireTemp
+)
+

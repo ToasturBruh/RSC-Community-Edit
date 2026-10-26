@@ -1,0 +1,31 @@
+@name rsc_community_edit/controls/bruss_std
+@inputs 
+@outputs 
+@persist [Controls Routing]:table
+
+
+#--------------
+#Control Config
+#--------------
+
+#You can actually change this, but be careful.
+#Wiremod key names do not always coincide with source key names!
+
+Alternate = "lshift" #When pressing this key, all controls with "!ALT" next to them will be triggered, and all the other will be ignored.
+
+Controls["ReverserF",string]        = "w"
+Controls["ReverserB",string]        = "s"
+
+Controls["IncreaseThrottle",string] = "d"
+Controls["DecreaseThrottle",string] = "a"
+
+Controls["IncreaseTrainBrake",string]    = "apostrophe"
+Controls["DecreaseTrainBrake",string]    = "semicolon"
+
+Controls["IncreaseLocoBrake",string] = "rbracket"
+Controls["DecreaseLocoBrake",string] = "lbracket"
+
+
+Controls["EmergencyBrake",string] = "rshift"
+
+Controls["HandBrake",string] = "h" 
