@@ -12,7 +12,7 @@
 @persist CarCount BrakePipe IncreaseLocoBrake DecreaseLocoBrake LB26L_ClickQ  EmergencyBrake [EmergencyBrakeSound BrakeScreech]:string Moving BQ Threshold_Hard BPQ BrakeForce
 @persist CarCount_Init HandBrake HBQ MaxTrainBrakeForce MaxLocoBrakeForce Switching
 @persist ShovelRate BurnRate InjectRate BoilRate HeatRate ThetaDist CN CM ChuffQ DRV Johnson_Bar
-#@persist SoundLevel EchoLevel DSPIDX Clt Version:string
+#@persist SoundLevel EchoLevel DSPIDX Clt 
 
 #@outputs OM LBQ IHQ THQ ABQ
 @persist OM LBQ IHQ THQ ABQ
@@ -50,7 +50,7 @@
 @outputs IHPT
 
 #Bullshit
-@persist Dt Interval FunMul
+@persist Dt Interval FunMul Version:string ConfigVer:string MinConfigVer:string
 @outputs DATA_OUT:table
 
 #Sound testing
@@ -61,7 +61,7 @@
 
 #Community Edit V1.4.0
 Version = "1.4.0"
-ConfigVer = "0.0.0"
+MinConfigVer = "1.0.0"
 
 #Changelog
 
@@ -86,7 +86,7 @@ Insert and initalize these values inside your wheel code:
 
 WheelRPM = ((MPH+SlipMPH)*336)/Diameter
 DPS = WheelRPM * 6 #Degrees per second
-WheelAng += DPS*Interval
+WheelAng = (WheelAng + (DPS*Interval)) % 360
 
 [[-----------------------------------------
 'Interval' and 'Diameter' should be substituted for values relevant to your wheelbase.
@@ -96,7 +96,7 @@ SETUP INSTRUCTIONS:
 0 - Configure chip.
 1 - Place the e2 on the rear of a steam locomotive's baseplate and leave it welded.
 2 - Create an ADVANCED Entity Marker and link it to all the locomotive's DRIVER wheels if if uses a PROP base.
-    2.1 - If the locomotive uses a HOLO base, mark all sliders/axles to the entity marker INCLUDING leading/trailing trucks
+    2.1 - If the locomotive uses a HOLO base, mark all sliders/axles to the entity marker INCLUDING leading/trailing trucks.
 3 - Wire Drivers[ARRAY] to the entity marker if it uses a PROP base, otherwise wire Trucks[ARRAY] to the entity marker.
 4 - Wire Pod:entity to the locomotive's pod controller Entity:entity output.
 5 - Wire Ignite to either a pod controller key or a NON-TOGGLED button.
@@ -451,9 +451,7 @@ if(first()|dupefinished()){
     
     setName("Realistic Steam Control [CE]" + "\nVersion " + Version + "\n" + Name)
     
-    runOnHTTP(1)
-    httpRequest("https://raw.githubusercontent.com/ToasturBruh/RSC-Community-Edit/main/version.txt")
-    timer("vto",5000)
+    
     
     Dt = 1/20
     
@@ -773,9 +771,63 @@ if(first()|dupefinished()){
             }
     }
     
+    #runOnHTTP(1)
+    httpRequest("https://raw.githubusercontent.com/ToasturBruh/RSC-Community-Edit/refs/heads/main/version.txt")
+    timer("vto",5000)
     
+    function number versionCheck(Version:string,Expected:string){
+        Conflict = 0
+        #print("Comparing " + Version + " to " + Expected + ".")
+        
+        local VExp = Version:explode(".")
+        local VMaj = VExp[1,string]:toNumber()
+        local VMin = VExp[2,string]:toNumber()
+        local VRev = VExp[3,string]:toNumber()
+        
+        
+        local EExp = Expected:explode(".")
+        local EMaj = EExp[1,string]:toNumber()
+        local EMin = EExp[2,string]:toNumber()
+        local ERev = EExp[3,string]:toNumber()
+    
+    
+        if((VMaj > EMaj) | (VMin > EMin) | (VRev > ERev)){Conflict = -1} #Dev build
+        if((VMaj < EMaj) | (VMin < EMin) | (VRev < ERev)){Conflict = 1}  #Invalid version
+        
+        
+        return Conflict
+    }
+    
+    if(versionCheck(ConfigVer,MinConfigVer) == 1){printColor(vec(255,100,0),"[RSC] Config version outdated. Proceed with caution and consider updating.")}
     #fuck
 }
+
+event httpLoaded(Body:string, Size:number, Url:string){
+    #print(Body)
+    #Body = Body:replace("\n","")
+    local Conflict = versionCheck(Version,Body)
+    
+    if(Conflict == 1){#Less than source
+        printColor(vec(255,10,0),"[RSC] RSC is out of date!")
+        printColor(vec(255,10,0),"      Consider updating from the GitHub:")
+        printColor(vec(100,100,200),"      https://github.com/ToasturBruh/RSC-Community-Edit")
+        owner():soundPlay("v_err",0,"garrysmod/content_downloaded.wav")
+    }
+    
+    if(Conflict == 0){#Up to Date
+        printColor(vec(36,255,36),"[RSC] RSC is up to date!")
+    }
+    
+    if(Conflict == -1){#Dev-build
+        printColor(vec(255,255,0),"[RSC] RSC version ahead of source.")
+    }
+}
+
+event httpErrored(Error:string, Url:string){
+    printColor(vec(250,10,0),"Version check error: " + Error)
+}
+
+#[
 if(clk("vto")){
     print("RSC version check timeout.")
     O:soundPlay(0,0,"lazpack/misc/tractionmotor_explosion.wav")
@@ -806,7 +858,7 @@ if(clk("vto")){
         O:soundPlay(0,0,"")
     }
 }
-
+]#
 interval(Interval)
 
 if(clk("THQ")){

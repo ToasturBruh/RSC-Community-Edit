@@ -1,5 +1,5 @@
 @name rsc_community_edit/locomotives/s1a_0-8-0
-@persist Name:string
+@persist Name:string ConfigVer:string
 
 #Wheels
 @persist Diameter Axles
@@ -80,4 +80,4 @@ LoopThresholds = table(
 )
 
 #Config check
-ThisConfigVer = "0.0.0"
+ConfigVer = "1.0.0"
