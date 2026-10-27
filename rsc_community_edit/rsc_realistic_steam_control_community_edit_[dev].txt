@@ -8,7 +8,7 @@
 @outputs Emergency AB16M_Notch LB16M_Notch AB26L LB26L Compressing Reverser
 @persist [Controls Routing]:table Alternate:string ReverserF ReverserB Locked WQ Force Driver:entity 
 @persist [E O B]:entity Mul Band BrakeMul [Idle Fire Wheels Coaling Injector InjectorOff ChuffLO ChuffHI]:string UseKPH Fireman 
-@persist MainRes Compressing [CompressorOn CompressorOff]:string NumCompressors AirBrakeType IncreaseTrainBrake EqualRes [Lever_26L Lever_16M AirBrakeApply AirBrakeRelease Lever_LocoBrake LocoBrakeRelease]:string DecreaseTrainBrake LocoBrakePressure
+@persist MainRes Compressing [CompressorOn CompressorOff]:string AirBrakeType IncreaseTrainBrake EqualRes [Lever_26L Lever_16M AirBrakeApply AirBrakeRelease Lever_LocoBrake LocoBrakeRelease]:string DecreaseTrainBrake LocoBrakePressure
 @persist CarCount BrakePipe IncreaseLocoBrake DecreaseLocoBrake LB26L_ClickQ  EmergencyBrake [EmergencyBrakeSound BrakeScreech]:string Moving BQ Threshold_Hard BPQ BrakeForce
 @persist CarCount_Init HandBrake HBQ MaxTrainBrakeForce MaxLocoBrakeForce Switching
 @persist ShovelRate BurnRate InjectRate BoilRate HeatRate ThetaDist CN CM ChuffQ DRV Johnson_Bar
@@ -1132,7 +1132,7 @@ if(clk("interval")){
             #local TBF = CarCount*(90-BrakePipe)*MaxTrainBrakeForce
             #local LBF = ((90-BrakePipe)>LocoBrakePressure ? (90-BrakePipe) : LocoBrakePressure)*MaxLocoBrakeForce
             #print(CarCount)
-            BrakingForce = (sign(V)*(MPH>0.5)*(Loco_BF+Train_BF) * 4.448222 * 39.3701 * 0.5 * (Dt))
+            BrakingForce = (sign(V)*(MPH>0.5)*(Loco_BF+Train_BF) * 2 * 4.448222 * 39.3701 * 0.5 * (Dt))
             
         }else{
             BrakingForce = 0
