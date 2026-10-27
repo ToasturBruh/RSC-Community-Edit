@@ -60,7 +60,7 @@
 @model models/beer/wiremod/watersensor.mdl
 
 #Community Edit V1.4.0
-Version = "1.4.0"
+Version = "1.4.1"
 MinConfigVer = "1.0.0"
 
 #Changelog
