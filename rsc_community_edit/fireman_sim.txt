@@ -7,11 +7,10 @@
 @persist BoilerL BoilerD BoilerCap BoilerVolume WaterTemp WaterDensity WaterMass
 
 #Fire
-@persist GrateL GrateW FireboxHeatCapacity
-@persist GrateMass GrateEnergy CoalDensity CoalVolume CoalEnergy ShovelVolume
+@persist GrateL GrateW FireboxVolume FireboxHeatCapacity FireboxMass
+@persist GrateMass GrateEnergy CoalDensity CoalVolume CoalHeatCapacity CoalEnergy ShovelVolume StokerRate
 @persist FireTemp Blower Damper Draft AirFuelRatio AirHeatCapacity
 @persist FireboxOutput CombustionRate BurnRate
-
 @trigger ShovelCoal
 
 #Holos
@@ -42,6 +41,9 @@ if(first() | dupefinished()){
     
     AmbientTemp = 65
     
+    ShovelVolume = 0.125 #How much volume your shovel adds in cu/ft^3
+    StokerRate = 10 #How many pounds of coal the stoker adds per second
+    
     BoilerL = 270
     BoilerD = 80
     
@@ -50,18 +52,20 @@ if(first() | dupefinished()){
     GrateL = 100
     GrateW = 100
     FireboxH = 60
+    EvaporativeSurface = 3000
     
     GrateMass  = 0 #How many lbs of coal are on the grate.
     GrateBurnRate = 0#Lb/hr 
     CoalDensity = 55 #lb/ft^3, bulk density - Anthracite ~ 55, Bituminous ~50, Pinewood ~30
     CoalEnergy  = 13000 #BTU/lb
-    FireboxHeatCapacity = 600 #600 100-200 for light engines, 200-700 for medium-large engines and 700-1500 for heavy engines. (BTU/F)
+    CoalHeatCapacity = 0.3 #Anthracite 0.3, bituminous 0.33
+    FireboxHeatCapacity = 600 #600 100-200 for light engines, 200-700 for medium-large engines and 700-1500 for heavy engines. (BTU/lb/F) You can get a precise number if you calculate the capacity of the fire arch.
     FireTemp = 1000 #F
-    
+    FireboxVolume = GrateL*GrateW*FireboxH #in^3
+    FireboxMass = FireboxVolume*0.075 #0.075 lb/ft^2 air density
+    #FireboxMass = 
     
     GrateEnergy = 0 #Amount of energy sitting on the grate
-    
-    ShovelVolume = 0.125 #How much volume your shovel adds in cu/ft^3
     
     Blower  = 0
     Damper  = 0
@@ -146,16 +150,12 @@ if(first() | dupefinished()){
 
 interval(Interval)
 
+#FIREBOX ------------------------------------------------------------------------------
+
 if(ShovelCoal & ~ShovelCoal){
     local CoalToAdd = CoalDensity * ShovelVolume #Mass of coal shovel to add
     CoalVolume = GrateMass/CoalDensity #Calculate coal density
     GrateMass = GrateMass + CoalToAdd #Calculate coal mass (lb)
-    
-    local GrateLFt = GrateL/12 #Convert to feet
-    local GrateWFt = GrateW/12
-    local CoalZ = (CoalVolume/(GrateLFt*GrateWFt))*12 #Convert back to inches
-    
-    holoPos(CoalHolo,entity():toWorld(vec((BoilerL/2)-GrateL/2,0,(-BoilerD/2)-15)*Scale)+vec(0,0,CoalZ))
 }
 
 GrateEnergy = GrateMass * CoalEnergy #Calculate BTU of grate
@@ -164,12 +164,14 @@ GrateEnergy = GrateMass * CoalEnergy #Calculate BTU of grate
 
 local TheoreticalTemp = GrateEnergy/FireboxHeatCapacity
 local RequiredAir = GrateMass * AirFuelRatio
-Draft = RequiredAir
+Draft = RequiredAir*1
 
 CombustionRate = FireTemp 
 
 if(GrateMass > 0){
-    BurnRate = ((FireTemp-900)/2700)*0.0025*GrateL*GrateW*Dt #Burned this tick
+    local BurnEff = Draft/RequiredAir
+    
+    BurnRate = ((FireTemp-900)/2700)*BurnEff*0.0025*GrateL*GrateW*Dt #Burned this tick
     
     GrateMass -= (BurnRate)
     #if(GrateMass < 0){GrateMass = 0}
@@ -178,19 +180,41 @@ if(GrateMass > 0){
     BurnRate = 0
 }
 
-FireboxOutput = BurnRate*CoalEnergy #BTU
-FireTemp += (FireboxOutput/FireboxHeatCapacity)
+FireboxOutput = BurnRate*(CoalEnergy*10) #BTU, *10 for game purposes
+FireTemp += (FireboxOutput/(FireboxHeatCapacity*FireboxMass))*1000 #1000 because it make it work nice
+FireTemp = clamp(FireTemp,1000,3000)
+holoColor(FireHolo,vec(128,0,0)+(vec(128,255,255)*((FireTemp-1000)/2700)))
 
-#holoColor(FireHolo,vec(128,0,0)+(vec(128,255,255)*((FireTemp-1000)/2700)))
+local GrateLFt = GrateL/12 #Convert to feet
+local GrateWFt = GrateW/12
+local CoalZ = (CoalVolume/(GrateLFt*GrateWFt))*12 #Convert back to inches
+holoPos(CoalHolo,entity():toWorld(vec((BoilerL/2)-GrateL/2,0,(-BoilerD/2)-15)*Scale)+vec(0,0,CoalZ))
 
+#BOILER ------------------------------------------------------------------------------
+
+TempDiff = FireTemp - WaterTemp
+HeatTransfered = FireTemp
+#FireTemp -= HeatTransfered
+#FireTemp -= 
+WaterTemp += HeatTransfered/WaterMass
+
+#-k*(T-Ta)
+#T - Water temp
+#Ta - atmos temp
+#-k transfer constant - steel is ~ 0.001/15
+
+#WaterTemp -= ()
 print(_HUD_PRINTCENTER,
-"Coal LBS: " + GrateMass +
-"\nCoal Volume: " + CoalVolume +
-"\nGrate Energy: " + GrateEnergy +
-"\nTargetTemp: " + TheoreticalTemp +
-"\nOptimal Draft: " + RequiredAir +
-"\nBurn Rate:" + BurnRate +
-"\nFirebox Output:" + FireboxOutput +
-"\nFirebox Temp:" + FireTemp
+"Coal LBS: " + round(GrateMass,1) +
+"\nCoal Volume: " + round(CoalVolume,2) +
+"\nGrate Energy: " + round(GrateEnergy) +
+"\nTargetTemp: " + round(TheoreticalTemp) +
+"\nOptimal Draft: " + round(RequiredAir) +
+"\nBurn Rate:" + round(BurnRate,3) +
+"\nFirebox Output:" + round(FireboxOutput) +
+"\nFirebox Temp:" + round(FireTemp,1) +
+"\n\nWater Temp:" + round(WaterTemp,2) +
+"\nWater Mass: " + round(WaterMass) +
+"\n BTUs required to boil:" + round((212-WaterTemp)*WaterMass)
 )
 

@@ -39,7 +39,7 @@
 @outputs ParticleOn Particle:string WhistleParticle:string Safeties WOn Clt
 @persist PStages:array Soot SootStage ThrottleStage Decayrate SafteyThresh WOn WBoth WhistleParticle:string
 
-@inputs C1L C2L C1R C2R Base:entity Base2:entity Base3:entity Base4:entity
+@inputs C1L C2L C1R C2R Base2:entity Base3:entity Base4:entity
 @persist C1L C2L C1R C2R
 
 #Consist Exploration
@@ -60,7 +60,7 @@
 @model models/beer/wiremod/watersensor.mdl
 
 #Community Edit V1.4.0
-Version = "1.4.1"
+Version = "1.4.2"
 MinConfigVer = "1.0.0"
 
 #Changelog
@@ -97,6 +97,7 @@ SETUP INSTRUCTIONS:
 1 - Place the e2 on the rear of a steam locomotive's baseplate and leave it welded.
 2 - Create an ADVANCED Entity Marker and link it to all the locomotive's DRIVER wheels if if uses a PROP base.
     2.1 - If the locomotive uses a HOLO base, mark all sliders/axles to the entity marker INCLUDING leading/trailing trucks.
+    2.2 - DO NOT USE HYPERSLIDERS!!!!!!!! They will drag the train's speed down such that it will be unusuable, please use normal sliders/axles (e.g. Bobster's).
 3 - Wire Drivers[ARRAY] to the entity marker if it uses a PROP base, otherwise wire Trucks[ARRAY] to the entity marker.
 4 - Wire Pod:entity to the locomotive's pod controller Entity:entity output.
 5 - Wire Ignite to either a pod controller key or a NON-TOGGLED button.
@@ -266,10 +267,15 @@ if(first()|dupefinished()){
     SafteyThresh=180 #The pressure at which the safety valves open
     
     
-    
-    
-    
     #End of Config
+    
+    
+    E = entity()
+    B = E:isWeldedTo()
+    Base = B
+    O = owner()
+    runOnChat(1)
+    
     
     holoCreate(1,Base:toWorld(vec()))
     holoParent(1,Base)
@@ -308,15 +314,13 @@ if(first()|dupefinished()){
     SwapQ = DQ = WQ = CQ = 0
     CONSTANT = 1
     
-    E = entity()
-    B = E:isWeldedTo()
-    O = owner()
-    runOnChat(1)
     
     
     #Weight handling
     #wtf
     BaseCount = 1
+    
+    if(!Base){printColor(vec(255,10,0),"[RSC] Baseprop undetected, power chip likely unwelded.")}
     
     if(Base2){
         BaseCount++
@@ -340,6 +344,8 @@ if(first()|dupefinished()){
         Base4:setMass(WeightHalfKg*0.5)
     }
     #This sucks
+    
+    if(!->Trucks){printColor(vec(255,10,0),"[RSC] Wire 'Trucks [ARRAY]' to an adv. entity marker per steps 2 and 3 and refresh. (DO NOT USE HYPERSLIDERS)")}
     
     B:setMass(WeightHalfKg*0.5)
     
@@ -752,7 +758,7 @@ if(first()|dupefinished()){
                                 ScanPhase = 0 #We still have entities, start over
                             }else{
                                 ScanPhase = -1 #Everything's fucked, stop
-                                print("Your RLC Chip is not welded, or the welded entity is invalid!")
+                                printColor(vec(255,10,0),"[RSC] Train scan failed. Baseprop undetected.")
                             }
                         }
                     }elseif(ScanPhase==4){ #Cooldown
