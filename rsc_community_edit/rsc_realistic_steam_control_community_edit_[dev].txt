@@ -40,7 +40,7 @@
 @persist PStages:array Soot SootStage ThrottleStage Decayrate SafteyThresh WOn WBoth WhistleParticle:string
 
 @inputs C1L C2L C1R C2R Base2:entity Base3:entity Base4:entity
-@persist C1L C2L C1R C2R
+@persist C1L C2L C1R C2R Base:entity
 
 #Consist Exploration
 @persist MassThreshold ScanCooldown ScanTimeStamp 
@@ -59,8 +59,8 @@
 @trigger Ignite
 @model models/beer/wiremod/watersensor.mdl
 
-#Community Edit V1.4.0
-Version = "1.4.2"
+#Community Edit V1.4.3
+Version = "1.4.3"
 MinConfigVer = "1.0.0"
 
 #Changelog
@@ -128,9 +128,7 @@ Happy Steaming!
 if(first()|dupefinished()){
     
     #include "rsc_community_edit/locomotives/s1a_0-8-0"
-    
-    FunMul = 2 #Multiplies power output. Most maps in Gmod have unmanagable grades, so this should fix that. 2 is a good value, use 1 for real-life physics.
-    
+
     IHP = HeatingSurfaceArea/IHP_Efficiency
     #MaxEvapRate = HeatingSurfaceArea*60 #55 lb/hr of steam per sqft of firebox area
     MaxEvapRate = IHP * 30 #Reverse of boiler efficency, 30 lb/steam per hrosepower. Probably not great, better coming soon.
@@ -453,15 +451,12 @@ if(first()|dupefinished()){
     MaxLocoBrakeForce = 300000/70
     MaxTrainBrakeForce = 0
     
-    Threshold_Hard = 0.5
+    Threshold_Hard = 0.5 #MPH brake threshold
     
     setName("Realistic Steam Control [CE]" + "\nVersion " + Version + "\n" + Name)
     
     
     
-    Dt = 1/20
-    
-    Interval = Dt*1000
     
     #This function "publishes" the in-progress data to the semi-permanent data at the end of each train scan.
     function void publishTrainData(){
@@ -806,7 +801,12 @@ if(first()|dupefinished()){
     
     if(versionCheck(ConfigVer,MinConfigVer) == 1){printColor(vec(255,100,0),"[RSC] Config version outdated. Proceed with caution and consider updating.")}
     #fuck
-}
+    
+    Dt = 1/20
+    Interval = Dt*1000
+    timer("Chuff",Interval)
+    timer("think",Interval)
+}#End init
 
 event httpLoaded(Body:string, Size:number, Url:string){
     #print(Body)
@@ -865,7 +865,8 @@ if(clk("vto")){
     }
 }
 ]#
-interval(Interval)
+
+#interval(Interval)
 
 if(clk("THQ")){
     THQ = 0
@@ -876,8 +877,8 @@ if(clk("THQ")){
 }
         
 #========Synchronous
-if(clk("interval")){
-    
+#if(clk("think")){
+timer("think",Dt,0,function(){
     #Warmup
     if(Warmup){
         if(Steam >= 100){
@@ -931,7 +932,7 @@ if(clk("interval")){
             WQ = 1
             B:soundPlay("wheel_loop",0,Wheels)
         }
-        soundPitch(3,MPH*3.3)
+        soundPitch("wheel_loop",MPH*3.3)
     }elseif(!Moving & WQ){
         WQ = 0
         soundStop("wheel_loop")
@@ -948,9 +949,9 @@ if(clk("interval")){
             Base:soundPlay("compressor",0,CompressorOn)
         }elseif((MainRes>150) & Compressing){
             Compressing = 0
-            Base:soundPlay("compressor",4,CompressorOff)
+            Base:soundPlay("compressor",0,CompressorOff)
         }
-        if(Compressing){MainRes += 0.5*NumCompressors}
+        if(Compressing){MainRes += 2*NumCompressors * Dt}
         
         #--------------------
         #Equalizing Reservoir
@@ -1081,6 +1082,7 @@ if(clk("interval")){
         
         #Train Brake Physprops
         if(Brake & (MPH<Threshold_Hard) & !BPQ){
+            carScan()
             BPQ = 1
             Trucks:abRest()
             Locked = 1
@@ -1137,7 +1139,7 @@ if(clk("interval")){
             
             #local TBF = CarCount*(90-BrakePipe)*MaxTrainBrakeForce
             #local LBF = ((90-BrakePipe)>LocoBrakePressure ? (90-BrakePipe) : LocoBrakePressure)*MaxLocoBrakeForce
-            #print(CarCount)
+            #print(CarCount)                                     #*2 because fuck you.
             BrakingForce = (sign(V)*(MPH>0.5)*(Loco_BF+Train_BF) * 2 * 4.448222 * 39.3701 * 0.5 * (Dt))
             
         }else{
@@ -1169,9 +1171,9 @@ if(clk("interval")){
         #elseif(Reverser==0&Spin>1){Spin-=0.0625}        
         
         local Windup = Dt/4
-        local TE_Slip = TE_LBF * ThrottleN# * TE_Spike
-        #if(TE_Slip > SlipLimit){SlipRate += (1*Windup)}
-        #if(SlipRate > 0 & TE_Slip < (SlipLimit*0.75)){SlipRate -= (1*Windup*4)}
+        local TE_Slip = TE_LBF * ThrottleN * TE_Spike
+        if(TE_Slip > SlipLimit){SlipRate += (1*Windup)}
+        if(SlipRate > 0 & TE_Slip < (SlipLimit*0.75)){SlipRate -= (1*Windup*4)}
         TE_Spike = 1
         
         SlipRate = clamp(SlipRate,0,1)
@@ -1194,7 +1196,7 @@ if(clk("interval")){
         
         #Force Application
         
-        
+        #[
         local Dir = -E:up()
         local HB = Band/2
         local MV = MPH*sign(V)
@@ -1205,7 +1207,7 @@ if(clk("interval")){
         }
         LB = RShift - HB
         UB = LB + Band
-        
+        ]#
         #local IHP
         #if((MV > LB)&(MV < UB)&(Reverser!=0)){
             
@@ -1315,39 +1317,42 @@ if(clk("interval")){
     if(C1R==1){Base3:soundPlay(102,0,"triggerboyswhistles/safeties.wav")}
     else{soundStop(102,1)} 
     if(C2R==1){Base4:soundPlay(103,0,"triggerboyswhistles/safeties.wav")}
-    else{soundStop(103,1)} 
+    else{soundStop(103,1)}
+    
+    timer("think",Interval)
  
-}#else{
-#========Asynchronous
-    #Ignition
-    if(Ignite & ~Ignite){
-        if(Active|Warmup){
-            Warmup = Active = 0
-            Reverser = Throttle = 0
-            Coal = Water = Fireman ? 50 : 100
-            Temp = Steam = Fireman ? 0 : 100
-            soundStop(0)
-            soundStop(10)
-            soundStop(3)
-            Firebox = vec()
+})#else{
+
+#Ignition
+if(Ignite & ~Ignite){
+    if(Active|Warmup){
+        Warmup = Active = 0
+        Reverser = Throttle = 0
+        Coal = Water = Fireman ? 50 : 100
+        Temp = Steam = Fireman ? 0 : 100
+        soundStop(0)
+        soundStop(10)
+        soundStop(3)
+        Firebox = vec()
+    }else{
+        if(Fireman){
+            
+            Warmup = 1
+            B:soundPlay(0,0,Fire)
         }else{
-            if(Fireman){
-                
-                Warmup = 1
-                B:soundPlay(0,0,Fire)
-            }else{
-                Firebox = vec(255,Temp,(Temp > 100)*(Temp - 100))
-                Active = 1
-                Warmup = 0
-                B:soundPlay(0,0,Idle)
-                soundPitch(10,0)
-            }
+            Firebox = vec(255,Temp,(Temp > 100)*(Temp - 100))
+            Active = 1
+            Warmup = 0
+            B:soundPlay(0,0,Idle)
+            soundPitch(10,0)
         }
     }
-    
+}
+
+timer("controls",Dt,0,function(){
     #Controls
     if((ReverserF) | (ReverserB)){
-        Reverser += (DRV ? 0.05 : 0.125)*(ReverserF - ReverserB)
+        Reverser += 1*(ReverserF - ReverserB)*Dt
         
         if(MPH > 4){#Reverser speed lockout
             if(Reverser > 0){Reverser = clamp(Reverser,0,1)}
@@ -1357,7 +1362,8 @@ if(clk("interval")){
         Reverser = clamp(Reverser,-1,1)
         R8 = Reverser*8
     }
-    Cutoff = (CutoffMin +(CutoffMax-CutoffMin)*abs(Reverser))
+    
+    Cutoff = lerp(CutoffMin,CutoffMax,abs(Reverser))#(CutoffMin +(CutoffMax-CutoffMin)*abs(Reverser))
     
     #Fireman Controls
     if(Fireman){
@@ -1378,7 +1384,8 @@ if(clk("interval")){
             }
         }
     }
-#}
+})
+
 if(clk("interval") & Fireman){
     #========Fireman Heartbeat
     Coal += AddCoal*ShovelRate - BurnRate*(1+ 3*Damper)*(Active|Warmup)
@@ -1403,15 +1410,15 @@ if(clk("interval") & Fireman){
         soundStop(10)
         soundStop(3)
     }
-    timer("heartbeat",500)
+    #timer("heartbeat",500)
     #print("Heartbeat")
                                                                                                                                                                                                                                        #nuts balls even
 }
 
-if(clk("interval")){
-    #local DtC = 1/33
-    #local IntervalC = DtC*1000
-    #timer("Chuff",IntervalC)
+timer("chuff",1/33,0,function(){#if(clk("Chuff")){
+    local DtC = 1/33
+    local IntervalC = DtC*1000
+    timer("Chuff",IntervalC)
     
     #RPM = abs(round(((MPH/60)*63360)/Circumference,1))
     
@@ -1421,7 +1428,7 @@ if(clk("interval")){
     local ThrottleN = sqrt(Throttle/10)#abs(Throttle/10)
     #Period = (1/(RPM/60))
     
-    WheelAng += round(DPS*Dt,3)
+    WheelAng += round(DPS*DtC,3)
     #print(WheelAng)
     DoBark = 0
     
@@ -1604,7 +1611,7 @@ if(clk("interval")){
         timer("Chuff",100)
     }
        ]#
-}
+})
 
 #========Chat
 if(chatClk(O)){
