@@ -50,7 +50,7 @@
 @outputs IHPT
 
 #Bullshit
-@persist Dt Interval FunMul Version:string ConfigVer:string MinConfigVer:string
+@persist Dt Interval GravityFactor Version:string ConfigVer:string MinConfigVer:string
 @outputs DATA_OUT:table
 
 #Sound testing
@@ -59,8 +59,8 @@
 @trigger Ignite
 @model models/beer/wiremod/watersensor.mdl
 
-#Community Edit V1.4.3
-Version = "1.4.3"
+#Community Edit V1.4.4
+Version = "1.4.4"
 MinConfigVer = "1.0.0"
 
 #Changelog
@@ -141,9 +141,13 @@ if(first()|dupefinished()){
     
     BoilerPSI = BoilerMaxPSI
     
+    GravityFactor = 386/gravity()
     
-    
-    
+    if(gravity() != 386){
+        printColor(vec(255,10,0),"[RSC] WARNING: sv_gravity is set to " + gravity() + ".")
+        printColor(vec(255,10,0),"      Earth's gravity is 386 in/s, consider inserting 'sv_gravity 386' in to your launch options.")
+        printColor(vec(255,10,0),"      RSC will attempt to compensate...")
+    }
     
     #Mul = 306 #The General Force Multiplier, determines pulling power. 200 is a good value.
     #Band = 15 #The "Power Band." The (Highly Idealized) speed range (in MPH) over which you can go before you need to reduce the reverser value.
@@ -1140,7 +1144,7 @@ timer("think",Dt,0,function(){
             #local TBF = CarCount*(90-BrakePipe)*MaxTrainBrakeForce
             #local LBF = ((90-BrakePipe)>LocoBrakePressure ? (90-BrakePipe) : LocoBrakePressure)*MaxLocoBrakeForce
             #print(CarCount)                                     #*2 because fuck you.
-            BrakingForce = (sign(V)*(MPH>0.5)*(Loco_BF+Train_BF) * 2 * 4.448222 * 39.3701 * 0.5 * (Dt))
+            BrakingForce = (sign(V)*(MPH>0.5)*(Loco_BF+Train_BF) * GravityFactor * 4.448222 * 39.3701 * 0.5 * (Dt))
             
         }else{
             BrakingForce = 0
@@ -1247,7 +1251,7 @@ timer("think",Dt,0,function(){
             if(TE_LBF > TE_StartingDecay){TE_LBF = TE_StartingDecay}#Limit TE to your starting
             #if(TE_LBF > TE_Starting){TE_LBF = TE_Starting}
             #local ReverserDecay = sqrt(Reverser)               #*2 coconut
-            TE_Force = (TE_LBF * ThrottleN * CylinderWeighted) * 2 * 4.448222 * 39.3701 * 0.5 * (Dt) * sign(Reverser)
+            TE_Force = (TE_LBF * ThrottleN * CylinderWeighted) * GravityFactor * 4.448222 * 39.3701 * 0.5 * (Dt) * sign(Reverser)
             #print(Dt)
             #print(IHP)
             
