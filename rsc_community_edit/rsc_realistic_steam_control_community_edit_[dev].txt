@@ -61,7 +61,7 @@
 
 #Community Edit V1.4.4
 Version = "1.4.4"
-MinConfigVer = "1.0.0"
+MinConfigVer = "1.0.1"
 
 #Changelog
 
