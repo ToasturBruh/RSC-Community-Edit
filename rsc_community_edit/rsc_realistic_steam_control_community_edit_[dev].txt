@@ -59,9 +59,9 @@
 @trigger Ignite
 @model models/beer/wiremod/watersensor.mdl
 
-#Community Edit V1.4.4
-Version = "1.4.4"
-MinConfigVer = "1.0.1"
+#Community Edit V1.4.5
+Version = "1.4.5"
+MinConfigVer = "1.0.0"
 
 #Changelog
 
@@ -142,12 +142,13 @@ if(first()|dupefinished()){
     BoilerPSI = BoilerMaxPSI
     
     GravityFactor = 386/gravity()
-    
+    #[
     if(gravity() != 386){
         printColor(vec(255,10,0),"[RSC] WARNING: sv_gravity is set to " + gravity() + ".")
         printColor(vec(255,10,0),"      Earth's gravity is 386 in/s, consider inserting 'sv_gravity 386' in to your launch options.")
         printColor(vec(255,10,0),"      RSC will attempt to compensate...")
     }
+    ]#
     
     #Mul = 306 #The General Force Multiplier, determines pulling power. 200 is a good value.
     #Band = 15 #The "Power Band." The (Highly Idealized) speed range (in MPH) over which you can go before you need to reduce the reverser value.
