@@ -31,8 +31,8 @@
 @outputs DoBark
 
 #Drivers
-@persist Diameter Slipping SlipRate SlipWeight TE_Spike
-@outputs Slipping SlipWeight
+@persist Diameter Slipping SlipRate SlipWeight TE_Spike Sander Sanding Sand:string
+@outputs Slipping SlipWeight Sanding
 
 #Particles
 @inputs  Whistle1 Whistle2 Chuff1 Chuff2 Chuff3 Chuff4
@@ -50,7 +50,7 @@
 @outputs IHPT
 
 #Bullshit
-@persist Dt Interval GravityFactor Version:string ConfigVer:string MinConfigVer:string
+@persist Dt Interval GravityFactor Version:string ConfigVer:string MinConfigVer:string MinControlVer:string
 @outputs DATA_OUT:table
 
 #Sound testing
@@ -59,9 +59,10 @@
 @trigger Ignite
 @model models/beer/wiremod/watersensor.mdl
 
-#Community Edit V1.4.5
-Version = "1.4.5"
+#Community Edit V1.4.6
+Version = "1.4.6"
 MinConfigVer = "1.0.0"
+MinControlVer = "1.0.0"
 
 #Changelog
 
@@ -142,13 +143,12 @@ if(first()|dupefinished()){
     BoilerPSI = BoilerMaxPSI
     
     GravityFactor = 386/gravity()
-    #[
+    
     if(gravity() != 386){
         printColor(vec(255,10,0),"[RSC] WARNING: sv_gravity is set to " + gravity() + ".")
-        printColor(vec(255,10,0),"      Earth's gravity is 386 in/s, consider inserting 'sv_gravity 386' in to your launch options.")
+        printColor(vec(255,10,0),"      Earth's gravity is 386 in/s, consider inserting 'sv_gravity 386' in to your server's launch options.")
         printColor(vec(255,10,0),"      RSC will attempt to compensate...")
     }
-    ]#
     
     #Mul = 306 #The General Force Multiplier, determines pulling power. 200 is a good value.
     #Band = 15 #The "Power Band." The (Highly Idealized) speed range (in MPH) over which you can go before you need to reduce the reverser value.
@@ -171,26 +171,6 @@ if(first()|dupefinished()){
     
     #include "rsc_community_edit/controls/default"
     
-    #[
-    Alternate = "lshift" #When pressing this key, all controls with "!ALT" next to them will be triggered, and all the other will be ignored.
-    
-    Controls["ReverserF",string]        = "w"
-    Controls["ReverserB",string]        = "s"
-    
-    Controls["IncreaseThrottle",string] = "d"
-    Controls["DecreaseThrottle",string] = "a"
-    
-    Controls["IncreaseTrainBrake",string]    = "w !ALT"
-    Controls["DecreaseTrainBrake",string]    = "s !ALT"
-    
-    Controls["IncreaseLocoBrake",string] = "r !ALT"
-    Controls["DecreaseLocoBrake",string] = "f !ALT"
-    
-    
-    Controls["EmergencyBrake",string] = "b"
-    
-    Controls["HandBrake",string] = "h" 
-    ]#
     
     #Ignore this
     ControlPrintOrder = array("ReverserF","ReverserB","IncreaseThrottle","DecreaseThrottle","IncreaseDynamics","DecreaseDynamics","IncreaseTrainBrake","DecreaseTrainBrake","IncreaseLocoBrake","DecreaseLocoBrake","EmergencyBrake","HandBrake","Sander")
@@ -211,38 +191,8 @@ if(first()|dupefinished()){
     Coaling = "moztrainsounds/steam/generic/coal_shoveling_loop.wav"
     Injector = "moztrainsounds/steam/generic/water_injectors_loop.wav"
     Injector_Off = "moztrainsounds/steam/generic/water_injectors_end.wav"
-    
-    #[
-    #Specify the "1" chuff sound. E2 will automatically pick out the "2" "3" and "4"
-    ChuffLO = "moztrainsounds/steam/grange/chuffs/bark1.wav"
-    ChuffHI = "moztrainsounds/steam/grange/chuffs/bark1.wav"
-    
-    ChuffLoops = array(
-        "moztrainsounds/steam/grange/chuffs/chuffloop1.wav",
-        "moztrainsounds/steam/grange/chuffs/chuffloop2.wav",
-        "moztrainsounds/steam/grange/chuffs/chuffloop3.wav",
-        "moztrainsounds/steam/grange/chuffs/chuffloop4.wav",
-        "moztrainsounds/steam/grange/chuffs/chuffloop5.wav",
-        "moztrainsounds/steam/grange/chuffs/chuffloop6.wav",
-        "moztrainsounds/steam/grange/chuffs/chuffloop7.wav",
-        "moztrainsounds/steam/grange/chuffs/chuffloop8.wav"
-    )
-    
-    ChuffLoopThresholds = array( #Minimum speeds to switch to the corresponding chuff sound. THIS ARRAY SHOULD HAVE ONE MORE ELEMENT IN IT THAN THE CHUFFLOOPS ARRAY.
-        13, #First Loop Sound
-        17,
-        20,
-        25,
-        30,
-        35,
-        40,
-        45, #Last Loop Sound
-        
-        60 #This is the top speed of the locomotive for sound purposes.
-    )
-    ]#
-    #UseKPH = 0 #Speed units to use for ChuffLoopThresholds. 0: use MPH. 1: Use KPH
-    
+    Sand = ""
+
     Lever_16M = "trans_train_sounds/controls/aar/auto_lever_move.wav"
     Lever_26L = "trans_train_sounds/controls/aar/auto_air_apply_initial_alt.wav"
     Lever_LocoBrake = "loknoisbygeordie/steam/brakes/indy_brake_set_2.wav"
@@ -252,8 +202,8 @@ if(first()|dupefinished()){
     AirBrakeRelease = "trans_train_sounds/controls/kc92/6sl_release.wav"   
     LocoBrakeRelease = "loknoisbygeordie/steam/brakes/indy_brake_release.wav" #Locomotive brakes' apply sounds are very quiet so we just included a release.
     EmergencyBrakeSound = "trans_train_sounds/controls/aar/auto_lever_emergency.wav"  #The sound of the engineer shitting his pants
-    CompressorOn = "loknoisbygeordie/steam/misc/air_pump5_loop_slow.wav"
-    CompressorOff = "loknoisbygeordie/steam/misc/air_pump5_end_slow.wav"
+    CompressorOn = "/locnoisbygeordie/steam/misc/air_pump5_loop_slow.wav"
+    CompressorOff = "/locnoisbygeordie/steam/misc/air_pump5_end_slow.wav"
     
     
     
@@ -805,6 +755,7 @@ if(first()|dupefinished()){
     }
     
     if(versionCheck(ConfigVer,MinConfigVer) == 1){printColor(vec(255,100,0),"[RSC] Config version outdated. Proceed with caution and consider updating.")}
+    if(versionCheck(ControlVer,MinControlVer) == 1){printColor(vec(255,100,0),"[RSC] Controls version outdated. Proceed with caution and consider updating.")}
     #fuck
     
     Dt = 1/20
@@ -837,39 +788,6 @@ event httpLoaded(Body:string, Size:number, Url:string){
 event httpErrored(Error:string, Url:string){
     printColor(vec(250,10,0),"Version check error: " + Error)
 }
-
-#[
-if(clk("vto")){
-    print("RSC version check timeout.")
-    O:soundPlay(0,0,"lazpack/misc/tractionmotor_explosion.wav")
-    runOnHTTP(0)
-}elseif(httpClk()){
-    stoptimer("vto")
-    runOnHTTP(0)
-    
-    local VExp = Version:explode(".")
-    local VMaj = VExp[1,string]:toNumber()
-    local VMin = VExp[2,string]:toNumber()
-    local VRev = VExp[3,string]:toNumber()
-    
-    local MVer = httpData()
-    local MVExp = MVer:explode(".")
-    local MVMaj = MVExp[1,string]:toNumber()
-    local MVMin = MVExp[2,string]:toNumber()
-    local MVRev = MVExp[3,string]:toNumber()
-    
-    local Conflict = ((MVMaj != VMaj) | (MVMin != VMin) | (MVRev != VRev))
-
-    if(Conflict){
-        print("RSC is out of date! Your version: "+Version+" Master version: "+MVer)
-        print("GitHub: https://github.com/ToasturBruh/RSC-Community-Edit/")
-        O:soundPlay(0,0,"")
-    }else{
-        print("RSC is up to date!")
-        O:soundPlay(0,0,"")
-    }
-}
-]#
 
 #interval(Interval)
 
@@ -923,6 +841,7 @@ timer("think",Dt,0,function(){
         HandBrake = Driver:keyPressed(Controls["HandBrake",string]) & (Routing["HandBrake",number] ? Shifting : !Shifting)
         Sander = Driver:keyPressed(Controls["Sander",string]) & (Routing["Sander",number] ? Shifting : !Shifting)
     }
+    
     V = -E:velL():z()
     Spd = abs(V)#+(SlipWeight*5000)
     MPH = abs(Spd/17.6)
@@ -979,11 +898,11 @@ timer("think",Dt,0,function(){
         #ER Hiss
         if((AB16M_Notch==1) & (EqualRes>0) & !THQ){
             THQ = 1
-            Pod:soundPlay(15,4,AirBrakeApply)
+            Pod:soundPlay("ab_apply",4,AirBrakeApply)
             timer("THQ",6000)
         }elseif((AB16M_Notch==-1) & (EqualRes<90) & !THQ){
             THQ = 1
-            Pod:soundPlay(15,4,AirBrakeRelease)
+            Pod:soundPlay("ab_apply",4,AirBrakeRelease)
             timer("THQ",6000)
         }
 
@@ -1127,20 +1046,6 @@ timer("think",Dt,0,function(){
             Train_BF = (CarCount * 2.5 * ((90-BrakePipe) * 78.5 * 6.49 * (( 19.5 / (68 + MPH) ) + 0.0206)))
             Loco_BF = (BrakeCyl * 50 * Axles * 5.65 * 2 * (ClaspBrakes ?  4.7 / (15 + MPH) : ( 19.5 / (68 + MPH))))
             
-            #[
-            local TotalUnits = 1
-            local ClaspBrakes = 0
-            
-            local WeightedCylPressure = ((TotalUnits - CarCount)/TotalUnits)*Cyl + (CarCount/TotalUnits)*BrakeCyl
-    
-            local HF_BrakeSpeedFactor = (19.5/(68 + MPH))
-            local CI_BrakeSpeedFactor = (4.7/(15 + MPH))
-            #local TrainBrakeForce = 3.2*MaxTrainBrakeForce*CarCyl
-            local TrainBrakeForce = CarCyl*MaxTrainBrakeForce*(HF_BrakeSpeedFactor + 0.0206)
-            #local LocoBrakeForce = Cyl*BrakeMul*(ClaspBrakes ? 1.25 : 1)*(26/72)*Axles/2
-            local LocoBrakeForce = Axles*Cyl*565*(ClaspBrakes ? CI_BrakeSpeedFactor : HF_BrakeSpeedFactor)
-            BE = (LocoBrakeForce + TrainBrakeForce)*17.513 #If you adjust this, don't forget to correct the DB lockup code and Blended Braking!
-            ]#
             
             #local TBF = CarCount*(90-BrakePipe)*MaxTrainBrakeForce
             #local LBF = ((90-BrakePipe)>LocoBrakePressure ? (90-BrakePipe) : LocoBrakePressure)*MaxLocoBrakeForce
@@ -1175,8 +1080,15 @@ timer("think",Dt,0,function(){
         #elseif(Throttle<(ThrottleLower*(MPH/(Band/(1.2+abs(Reverser))))+1)&Spin>1&Reverser!=0){Spin-=0.0625}
         #elseif(Reverser==0&Spin>1){Spin-=0.0625}        
         
+        if(changed(Sander) & Sander){
+            Sanding = !Sanding
+            if(Sanding){Pod:soundPlay("sanding",0,"/gsgtrainsounds/misc/cab/sand_loop.wav")}
+            if(!Sanding){Pod:soundPlay("sanding",0,"/gsgtrainsounds/misc/cab/sand_end.wav")}
+        }
+        
+        
         local Windup = Dt/4
-        local TE_Slip = TE_LBF * ThrottleN * TE_Spike
+        local TE_Slip = (TE_LBF * ThrottleN * TE_Spike)*(Sanding ? 0.75 : 1)
         if(TE_Slip > SlipLimit){SlipRate += (1*Windup)}
         if(SlipRate > 0 & TE_Slip < (SlipLimit*0.75)){SlipRate -= (1*Windup*4)}
         TE_Spike = 1
@@ -1192,33 +1104,15 @@ timer("think",Dt,0,function(){
         
         if(changed(Slipping)){
             if(Slipping){
-                entity():soundPlay("slip",0,"gsgtrainsounds/wheels/wheelslip_loop.wav")
+                Base:soundPlay("slip",0,"gsgtrainsounds/wheels/wheelslip_loop.wav")
             }else{
-                entity():soundPlay("slip",0,"gsgtrainsounds/wheels/wheelslip_end.wav")
+                Base:soundPlay("slip",0,"gsgtrainsounds/wheels/wheelslip_end.wav")
             }
         }
         
         
         #Force Application
-        
-        #[
-        local Dir = -E:up()
-        local HB = Band/2
-        local MV = MPH*sign(V)
-        if(Johnson_Bar){
-            RShift = 2*HB*Reverser
-        }else{
-            RShift = 2*(Reverser!=0)*(Reverser >= 0 ? (1 - Reverser) : (-1 - Reverser))*HB
-        }
-        LB = RShift - HB
-        UB = LB + Band
-        ]#
-        #local IHP
-        #if((MV > LB)&(MV < UB)&(Reverser!=0)){
-            
-            #Force = (Fireman ? 1 : 1.5)*(Johnson_Bar ? 2 : 1)*(Steam/100)*200*(sign(Reverser)*(1+abs(Reverser)))*Throttle*Mul*((MV - HB - RShift)*(MV + HB - RShift)*(-1/(HB^2)))
-            
-            
+
         if(Reverser!=0){
             
             #AAHHHHHHHH
@@ -1499,123 +1393,6 @@ timer("chuff",1/33,0,function(){#if(clk("Chuff")){
         soundVolume("LoopSound_DSP",ThrottleN)
         
     }
-    
-    #[
-    #Chuff
-    #print("Chuff")
-    if(Active & (MPH > 0.5)){
-        
-        #if(Int > 150){
-        local SampleSpeed = UseKPH ? KPH : MPH
-        local CThreshold = ChuffLoopThresholds[1,number]
-        if((SampleSpeed*Spin^2) < CThreshold){
-            
-            if(ChuffQ>0){ChuffQ = 0, soundStop(10) soundStop("LOOPDSP")}
-            
-            #V in inches per second
-            local Circ = _PI*Diameter #Circumference of Wheel; Distance to travel for one revolution
-            
-            ThetaDist += V/50
-            
-            Progress = ThetaDist/Circ
-            
-            local DoChuff = 0
-            
-            if(ThetaDist > Circ/4){
-                ThetaDist += -Circ/4
-                DoChuff = 1
-            }elseif(ThetaDist < -Circ/4){
-                ThetaDist += Circ/4
-                DoChuff = 1
-            }
-            
-            if(DoChuff){
-            
-                local Chf = ((SampleSpeed+Spin^2) < CThreshold/2) ? ChuffLO:replace("1",CN:toString()) : ChuffHI:replace("1",CN:toString())
-                #Pod:printDriver(Chf)
-                B:soundPlay(CM+30,0,Chf)
-                #soundVolume(CM+30,(Throttle / 10))
-                #soundVolume(CM+30,0)
-                soundLevel(CM+30,SoundLevel)
-                #soundDSP(CM+30,0)
-                soundVolume(CM+30,Throttle/20 + 0.5)
-                
-                holoEntity(1):soundPlay((CM+30)*2,0,Chf)
-                #soundVolume((CM+30)*2,(Throttle / 10))
-                #soundVolume((CM+30)*2,0)
-                soundLevel((CM+30)*2,EchoLevel)
-                soundDSP((CM+30)*2,24)
-                soundVolume((CM+30)*2,Throttle/20 + 0.5)
-                
-                #IsPlaying = soundPlaying((CM+30))
-                
-                CN++
-                CM++
-                if(CN==5){CN=1}
-                if(CM==8){CM=5}
-            
-            }
-            timer("Chuff",20)
-            
-        }else{ #Loop sounds
-            
-            #Find which one we're using
-            local SelectLoopSound = 1
-            local MyRangeMin = ChuffLoopThresholds[1,number]
-            local MyRangeMax = ChuffLoopThresholds[2,number]
-            for(N=2,ChuffLoopThresholds:count()){
-                if(SampleSpeed < ChuffLoopThresholds[N,number]){
-                    SelectLoopSound = N-1
-                    MyRangeMin = ChuffLoopThresholds[N-1,number]
-                    MyRangeMax = ChuffLoopThresholds[N,number]
-                    break
-                }
-            }
-            
-            
-            if(ChuffQ != SelectLoopSound){
-                ChuffQ = SelectLoopSound
-                
-                local Snd = ChuffLoops[SelectLoopSound,string]
-                
-                
-                
-                B:soundPlay(10,0,Snd)
-                soundLevel(10,SoundLevel)
-                #soundDSP(10,0)
-                
-                holoEntity(1):soundPlay("LOOPDSP",0,Snd)
-                soundLevel("LOOPDSP",EchoLevel)
-                soundDSP("LOOPDSP",24)
-                #soundVolume("LOOPDSP",0)
-
-            }
-            #OM = 600*Omega
-            
-            if(Reverser>=0){local OM = 100 + 10*((SampleSpeed+Spin^2) - MyRangeMin)/(MyRangeMax - MyRangeMin)}
-            else{local OM = 100 + 10*((SampleSpeed-Spin^2) - MyRangeMin)/(MyRangeMax - MyRangeMin)}
-            
-            local Clt = ChuffLoopThresholds[SelectLoopSound,number]
-            
-            #soundPitch(10,OM)
-            soundVolume(10,Throttle/15 + (1/3))
-            soundPitch(10,(abs(MPH-(Clt-1))*3)+96)
-            
-            #soundPitch("LOOPDSP",OM)
-            soundVolume("LOOPDSP",Throttle*0.8 + 0.2)
-            #soundVolume("LOOPDSP",0)
-            soundPitch("LOOPDSP",(abs(MPH-(Clt-1))*3)+96)
-            
-            
-            timer("Chuff",100)
-        }
-    }else{
-        soundStop(10)
-        soundStop("LOOPDSP")
-        soundStop(11)
-        timer("Chuff",100)
-    }
-       ]#
 })
 
 #========Chat

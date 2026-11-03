@@ -1,7 +1,7 @@
 @name rsc_community_edit/controls/default
 @inputs 
 @outputs 
-@persist [Controls Routing]:table
+@persist [Controls Routing]:table Alternate:string ControlVer:string
 
 
 #--------------
@@ -25,7 +25,10 @@ Controls["DecreaseTrainBrake",string]    = "s !ALT"
 Controls["IncreaseLocoBrake",string] = "r !ALT"
 Controls["DecreaseLocoBrake",string] = "f !ALT"
 
+Controls["Sander",string] = "period" 
 
 Controls["EmergencyBrake",string] = "b"
 
 Controls["HandBrake",string] = "h" 
+
+ControlVer = "1.0.0"
