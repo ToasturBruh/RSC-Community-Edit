@@ -1,0 +1,138 @@
+@name rsc_community_edit/extras/variable_valve
+@inputs On Increase Decrease
+@outputs Factor #0-1 output
+@persist User:entity IncreaseKey:string DecreaseKey:string Increments Parent RotFac FactorFactor ArcAngle
+@trigger On User Increase Decrease
+
+if(first() | dupefinished()){
+    
+    
+    Scale = 1 #Overall scale.
+    ArcScale = 1 #Scale of the position indicator.
+    ArcAngle = 90 #Offset rotation
+    
+    FactorFactor = 1 #By default the output is between 0-1, use this to change it. (Example: a value of 255 will output 0-255 as opposed to 0-1)
+    
+    IncreaseKey = "mouse_wheel_up"
+    DecreaseKey = "mouse_wheel_down"
+    Increments  = 8
+    #Note that 'Increase' and 'Decrease' inputs can be used to operate valve as opposed to keybinds.
+    
+    #You can customize the valve by creating holos below the valve parent.
+    
+    A = 1 #Ring backing
+    holoCreate(A, 
+    entity():toWorld(vec(0,0,0)*Scale),
+    vec(0.5,0.1,0.5)*Scale*ArcScale,
+    entity():toWorld(ang(0,90-ArcAngle,90)))
+    holoColor(A, vec4(0,0,0,255))
+    holoModel(A, "models/sprops/geometry/fring_30.mdl")
+    holoParent(A, entity())
+    holoMaterial(A,"models/props_gulch/gulch_crystal_white")
+    holoClipEnabled(A,1,1)
+    holoClip(A,1,vec(0,0,0),vec(0,0,1),0)
+    
+    A = 2 #Ring
+    holoCreate(A, 
+    entity():toWorld(vec(0,0,0.3)*Scale*ArcScale),
+    vec(0.5,0.1,0.5)*Scale*ArcScale,
+    entity():toWorld(ang(0,90-ArcAngle,90)))
+    holoColor(A, vec4(0,255,0,255))
+    holoModel(A, "models/sprops/geometry/fring_30.mdl")
+    holoParent(A, entity())
+    holoMaterial(A,"models/props_gulch/gulch_crystal_white")
+    holoClipEnabled(A,1,1)
+    holoClip(A,1,vec(0,0,0),vec(0,0,-1),0)
+    holoClipEnabled(A,2,1)
+    holoClip(A,2,vec(0,0,0),vec(0,0,1),0)
+    
+    A = 3 #Valve parent
+    Parent = A
+    holoCreate(A, 
+    entity():toWorld(vec(0,0,0)*Scale),
+    vec(0))
+    holoParent(A, entity())
+    holoMaterial(A,"")
+    
+    #You can change the appearance of the valve below this line, use as many holos as you'd like - just make sure they're parented to the 'Parent' holo.
+    
+    A++
+    holoCreate(A, 
+    entity():toWorld(vec(0,0,0)*Scale),
+    vec(1,1,1)*Scale,
+    entity():toWorld(ang(0,0,0)))
+    holoColor(A, vec4(255,255,255,255))
+    holoModel(A, "models/toast/steam/steam_valve_2.mdl")
+    holoParent(A, Parent)
+    holoMaterial(A,"")
+    
+    
+    
+    entity():setAlpha(0)
+    Factor = 0
+}
+
+
+event chipUsed(Player:entity){
+    if(On){
+        #print("used")
+        User = Player
+    }
+}
+
+
+local Increment = 1/Increments
+if(Increase & User){Factor += 1*Increment}
+if(Decrease & User){Factor -= 1*Increment}
+Factor = clamp(Factor,0,1)
+
+
+event keyPressed(Player:entity, Key:string, Down:number, KeyBind:string){
+    if(On){
+        if(Player == User){
+            #print(Key + " " + Down)
+            local Increment = 1/Increments
+            if(Key == IncreaseKey & Down == 1){Factor += 1*Increment} #scroll
+            if(Key == DecreaseKey & Down == 1){Factor -= 1*Increment} #scroll
+            
+            Factor = clamp(Factor,0,1)*FactorFactor
+            
+            if(KeyBind == "use" & Down == 0){User = _NO_ENTITY}
+            if(Key == "mouse_left" & Down == 0){User = _NO_ENTITY}
+            
+            holoClipEnabled(2,1,1)
+            holoClip(2,1,vec(0,0,0),vec(sin(Factor*180),0,-cos(Factor*180)),0)
+        }
+    }
+}
+
+if(On){
+    timer("think",1/10,0,function(){
+        if(User){
+            Scale = 1
+    
+            #holoColor(2,vec(0,255,0))
+            #holoColor(2,vec(255*clamp(Factor*2,0,1),255*clamp(Factor*2,0,1),0))
+            
+            holoAlpha(1,255)
+            holoAlpha(2,255)
+        }elseif(!User){
+            holoAlpha(1,240)
+            holoAlpha(2,240)
+            Scale = 0
+        }
+        
+        if(RotFac != Factor){
+            RotFac = clamp(RotFac + (Factor - RotFac) / 2, 0, 1)
+        }
+        holoAng(Parent,entity():toWorld(ang(0,RotFac*360,0)))
+    })
+}
+
+if(changed(On)){
+    if(On){
+        
+    }else{
+        
+    }
+}

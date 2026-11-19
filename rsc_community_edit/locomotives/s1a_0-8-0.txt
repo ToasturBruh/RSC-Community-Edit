@@ -20,6 +20,28 @@
 
 #Sounds
 @persist [QuarterSounds ChuffLoops LoopThresholds]:table SequentialBarks SoundLevel EchoLevel
+@persist [CompressorOn CompressorOff]:string StokerLoop:string [Idle Fire Wheels Coaling InjectorOn InjectorOff SafetiesOn BlowdownOn CylinderCocksOn BlowerOn]:string
+@persist [Lever_26L Lever_16M AirBrakeApply AirBrakeRelease Lever_LocoBrake LocoBrakeRelease]:string [EmergencyBrakeSound BrakeScreech]:string
+
+#Fireman--------------------------------------------
+
+@inputs ShovelCoal Stoker Inject Blower Damper
+@outputs BOILER_DATA:table SightGlass FireTemp WaterTemp
+@persist FiremanDt FiremanInterval AmbientTemp
+
+#Boiler
+@persist BoilerL BoilerD SmokeBoxL BoilerCap SmokeBoxVolume BoilerVolume BoilerUllage BoilerSound BoilerSoundMin BoilerSoundMax Blowdown
+@persist WaterVolume WaterDensity WaterMass WaterTemp WaterHeight WaterEnergy WaterEnthalpy SightGlassHeight FillFactor SightGlass
+@persist SteamMass SteamEnergy SteamEnthalpy SteamSpecificVol SteamPSI EvapRate
+
+#Fire
+@persist GrateL GrateW FireboxH DamperL DamperW DamperArea FireboxVolume FireboxHeatCapacity FireboxMass CrownSheetHealth
+@persist GrateMass GrateEnergy FuelDensity FuelVolume FuelEnergy GrateHeight ShovelVolume StokerRate
+@persist FireTemp Blower Damper Draft AirDensity AirFuelRatio AirHeatCapacity
+@persist FireboxOutput BurnRate
+
+@persist WheelRPM MPH
+@persist PlugsMelted:string BoilerExplosion:string
 
 Name            = "S1a 0-8-0"
 Weight          = 247000 #Weight on DRIVING AXLES
@@ -33,10 +55,10 @@ NumCompressors  = 2 #A single stage can be regarded as 0.5
 SlipLimit       = Weight*(1/FoA)
 
 BoilerMaxPSI    = 220 #Your maximum permissable operating boiler pressure.
-SteamVolume     = 2 #lerp(26.8,1,BoilerMaxPSI/450) #1.96 #Get the number from this link > https://www.engineeringtoolbox.com/saturated-steam-properties-d_273.html
+#SteamVolume     = 2 #lerp(26.8,1,BoilerMaxPSI/450) #1.96 #Get the number from this link > https://www.engineeringtoolbox.com/saturated-steam-properties-d_273.html
 PistonDiameter  = 25 #Cylinder bore
 PistonStroke    = 28 #Cylinder length
-CylinderCount   = 2  #How many?
+CylinderCount   = 2  #High pressure cylinder count, do not include compounded cylinders if applicable.
 
 CutoffMax = 0.85  
 CutoffMin = 0.15
@@ -44,11 +66,54 @@ CutoffMin = 0.15
 HeatingSurfaceArea  = 5100 #Sqft of heating surface area. Firebox AND tubes.
 EvaporativeSurface  = 0 #Firebox area exposed to water.
 SuperheaterSurface  = 0 #Tube surface area. (2*pi*r*h + 2*pi*r^2)*TubeCount
-IHP_Efficiency   = 2 #How many sqft of heating surface per indicated horsepower.
-                     #2 with superheaters, 2.5 without. (roughly)
+IHP_Efficiency      = 2 #How many sqft of heating surface per indicated horsepower.
+                        #2 with superheaters, 2.5 without. (roughly)
 
+#Particles
+
+#Steam velocity left to right.
+#Burn quality top to bottom.
+#First entry in each list will be used as idle for that burn quality.
+
+PStages = table(
+    table("env_embers_tiny","Black_100_Thin","Black_100_Medium","Black_100_Thick"),
+    table("smoke_exhaust_01","Gray_100_Thin","Gray_100_Medium","Gray_100_Thick"),
+    table("clag_2stroke_2","White_100_Thin","White_100_Medium","White_100_Thick")
+)
+
+WhistleParticle = "White_100_Thin"
 
 #Sounds
+
+Idle = "ambient/fire/fire_med_loop1.wav"
+Fire = "usa_locomotive_sounds_3/steam/fire/fire2.wav"
+Wheels = "gsgtrainsounds/misc/wheels_jointed.wav"
+Coaling = "moztrainsounds/steam/generic/coal_shovel_throw.wav"
+InjectorOn = "locnoisbygeordie/steam/misc/injector_loop.wav"
+#InjectorOff = "locnoisbygeordie/steam/misc/injector_end.wav"
+BlowerOn = "moztrainsounds/steam/generic/blower.wav"
+#BlowerOff = ""
+BlowdownOn = ""
+SafetiesOn = ""
+CylinderCocksOn = "moztrainsounds/steam/generic/cylindercocks.wav"
+SandOn = "/gsgtrainsounds/misc/cab/sand_loop.wav"
+SandOff = "/gsgtrainsounds/misc/cab/sand_end.wav"
+StokerLoop = "locnoisbygeordie/steam/misc/mech_stoker_loop.wav"
+
+
+#Lever_16M = "trans_train_sounds/controls/aar/auto_lever_move.wav"
+#Lever_26L = "trans_train_sounds/controls/aar/auto_air_apply_initial_alt.wav"
+#Lever_LocoBrake = "loknoisbygeordie/steam/brakes/indy_brake_set_2.wav"
+#Lever_HandBrake = "loknoisbygeordie/steam/brakes/handbrake_set_2.wav"
+BrakeScreech = "steam/wheels/brake_squeal_1_loop.wav"             #Brake Screech
+#AirBrakeApply = "trans_train_sounds/controls/kc92/6sl_service.wav"     #Sounds for Trainline Airbrakes
+#AirBrakeRelease = "trans_train_sounds/controls/kc92/6sl_release.wav"   
+LocoBrakeRelease = "loknoisbygeordie/steam/brakes/indy_brake_release.wav" #Locomotive brakes' apply sounds are very quiet so we just included a release.
+EmergencyBrakeSound = "trans_train_sounds/controls/aar/auto_lever_emergency.wav"  #The sound of the engineer shitting his pants
+CompressorOn = "/locnoisbygeordie/steam/misc/air_pump5_loop_slow.wav"
+CompressorOff = "/locnoisbygeordie/steam/misc/air_pump5_end_slow.wav"
+BoilerExplosion = "ambient/explosions/explode_2.wav"
+PlugsMelted = ""
 
 SequentialBarks = 1 #Should the barks be played in order or at random?
 SoundLevel = 85
@@ -70,7 +135,7 @@ ChuffLoops = table(
 "/train sounds/de/steam/chuff/mixd 1/steam_loop_300rpm.wav"
 )
 
-LoopThresholds = table(
+LoopThresholds = table( #RPM
 100,
 125,
 150,
@@ -79,5 +144,79 @@ LoopThresholds = table(
 300
 )
 
+#Fireman/Boiler -------------------------------------------------------------------------------------------------------------------
+
+#Do not change variables denoted with "#*" , unless you know *EXACTLY* what you are doing.
+
+AmbientTemp = 70
+    
+ShovelVolume = 0.125 #How much volume your shovel adds in cu/ft^3
+StokerRate = 10 #How many pounds of coal the stoker adds per second
+
+BoilerL = 270 #Boiler length
+BoilerD = 80 #Boiler diameter
+BoilerR = BoilerD/2 #* Boiler radius
+FeedwaterHeater = 1 #Pre-heats the feed water being injected into the boiler.
+SmokeBoxL = 50 #Length of smokebox. Used to calculate draft.
+SmokeBoxVolume = (_PI * (BoilerR^2) * SmokeBoxL)/1728 #* ft^3
+
+BoilerVolume = (_PI * (BoilerR^2) * BoilerL)/1728 #* in^3 to ft^3
+BoilerCap = BoilerVolume*7.481 #* ft^3 to gallons #5000 #Gallons
+
+
+BoilerSoundMin = 60 #This is essentially the height from the bottom of your boiler to the BOTTOM of your sight glass. When water drops below this it will begin to incur crown sheet damage.
+BoilerSoundMax = 67 #Height from the bottom of the boiler to the TOP of your sight glass. When water raises above this it will incur cylinder priming.
+SightGlassHeight = BoilerSoundMax - BoilerSoundMin
+CrownSheetHealth = 100 #* Initialize health
+
+BoilerSound     = BoilerSoundMin #Sound is the height from the bottom to the water surface (yes, this is where THAT term comes from)
+BoilerUllage    = BoilerD - BoilerSound #Ullage is the height from water surface to the top
+
+#SteamVolume = BoilerUllage
+
+GrateL = 100 #Length of grate
+GrateW = 100 #WiFiremanDth of grate
+FireboxH = 60 #Total height of the firebox from the grate to crown sheet
+
+DamperW = 18 #Width of the damper's enterance
+DamperL = 24 #Height of the damper's enterance
+DamperArea = (DamperW*DamperL)/144 #* Area of opening in sqft (You can comment out the equation and manually input a number if required.)
+
+GrateMass  = 0 #* How many lbs of fuel are on the grate.
+GrateBurnRate = 0 #* Lb/hr 
+FuelDensity = 55 #lb/ft^3, bulk density - Anthracite ~55, Bituminous ~50, Lignite ~40, Pinewood ~30, Money ~50
+FuelEnergy  = 13000 #BTU/lb, Anthracite ~13000, Bituminous ~11000, Lignite ~8000, Money ~7000
+#CoalHeatCapacity = 0.3 #Anthracite 0.3, bituminous 0.33
+#FireboxHeatCapacity = 600 #600 100-200 for light engines, 200-700 for medium-large engines and 700-1500 for heavy engines. (BTU/lb/F) You can get a precise number if you calculate the capacity of the fire arch.
+FireTemp = 1500 #* Starting fire temp in F
+FireboxVolume = GrateL*GrateW*FireboxH #* in^3
+FireboxMass = FireboxVolume*0.075 #* 0.075 lb/ft^3 air density, air mass
+#FireboxMass = 
+
+GrateEnergy = 0 #Amount of energy sitting on the grate
+
+Blower  = 0 #*
+Damper  = 0 #*
+Draft   = 0 #* CFM
+AirHeatCapacity = 0.24 #* Specific, BTU/Lb/F
+AirDensity      = 0.075 #* lb/ft^3 of air at 1 atm at 70F
+AirFuelRatio = 12 #* 12:1
+#Simulation will assume 12 lbs of air to 1 lb coal for a perfect burn.
+
+FillFactor = (BoilerSoundMin+(SightGlassHeight/2))/BoilerD #* Fill the boiler to half of the sight glass
+WaterHeight = lerp(0,BoilerD,FillFactor) #*
+WaterVolume = BoilerVolume*FillFactor #* ft^3
+WaterTemp = 200 #* AmbientTemp #Fahrenheit, sorry
+WaterDensity = 60 #* lb/ft^3 - ~62.5 at freezing, ~59.85 at boiling (212)
+WaterMass = WaterDensity * WaterVolume #* Initialize boiler water mass
+WaterEnergy = WaterTemp * WaterMass #* Water heat capacity is 1BTU/1lb/1F
+
+SteamEnergy = 0 #* H = U + pV
+SteamMass = 0 #* Lbs of steam
+
+
+SmokeBoxMass = SmokeBoxVolume * AirDensity
+
+
 #Config check
-ConfigVer = "1.0.1"
+ConfigVer = "1.1.0"

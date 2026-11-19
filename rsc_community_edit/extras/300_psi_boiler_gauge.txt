@@ -1,4 +1,4 @@
-@name rsc_community_edit/extras/300 PSI Boiler Gauge
+@name rsc_community_edit/extras/300_psi_boiler_gauge
 @inputs On PSI DoBark
 @outputs PSI1
 @persist PSI1 MaxBoilerPSI
@@ -11,7 +11,7 @@ if(first() | dupefinished()){
     
     GaugeMat = "models/toast/steam/gauge_psi_300"
     #Unused MaxBoilerPSI = 300 #This is assuming the PSI input is an arbitrary "100" value.
-    Scale = 1
+    Scale = 1.3
     
     A = 1
     holoCreate(A, 
@@ -50,7 +50,7 @@ if(first() | dupefinished()){
 
 if(On){
     interval(150)
-    PSI = PSI - (sign(DoBark) * 0.75)
+    PSI = PSI * (1 - (sign(DoBark) * 0.9))
     PSI1 = PSI1 + (PSI - PSI1) / 2
     holoAng(2,entity():toWorld(ang(0,-45-(PSI1/300)*270,0)))
 

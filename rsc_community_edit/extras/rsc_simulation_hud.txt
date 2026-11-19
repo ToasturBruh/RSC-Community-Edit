@@ -1,0 +1,148 @@
+@name rsc_community_edit/extras/rsc_simulation_hud
+@inputs HUD:wirelink DATA_OUT:table BOILER_DATA:table
+@outputs EGP_LOOKUP:table
+@persist EGP_LOOKUP:table ScreenMargin [ScrnW ScrnH] A
+@trigger
+
+if(first() | dupefinished()){
+    Scale = 1
+    ScreenMargin = 32
+    ScrnW = 2560
+    ScrnH = 1440
+    
+    EGP_LOOKUP = table()
+    HUD:egpClear()
+    
+    function debugInit(IndexOffset:number){
+        
+        #Engine debug
+        A = IndexOffset
+        EGP_LOOKUP["debug_engine",number] = A
+        
+        X = ScreenMargin
+        Y = 400
+        W = 150 * Scale
+        H = (12 * (DATA_OUT:count())) * Scale
+        PAD = 12*Scale
+        
+        HUD:egpRoundedBox(A,vec2((X+W/2)-(PAD/4),(Y+H/2)-(PAD/4)),vec2(W+(PAD),H+(PAD)))
+        HUD:egpRadius(A,5)
+        HUD:egpColor(A,vec4(32,32,32,150))
+        
+        #A++
+        
+        local I = 0
+        foreach(K:string,V:number = DATA_OUT){#Render table
+            #print(I)
+            
+            A++
+            HUD:egpText(A,K+": " + V,vec2(X,Y + 12 * I *Scale))
+            HUD:egpFont(A,"Lucida Console",12*Scale)
+            HUD:egpAlign(A,0,0)
+            
+            I++
+        }
+        
+        
+        #Boiler debug
+        A++
+        EGP_LOOKUP["debug_boiler",number] = A
+        
+        X = X
+        Y = Y + H + PAD*2
+        W = 200 * Scale
+        H = (12 * (BOILER_DATA:count())) * Scale
+        PAD = 12*Scale
+        
+        HUD:egpRoundedBox(A,vec2((X+W/2)-(PAD/4),(Y+H/2)-(PAD/4)),vec2(W+(PAD),H+(PAD)))
+        HUD:egpRadius(A,5)
+        HUD:egpColor(A,vec4(32,32,32,150))
+        
+        I = 0
+        foreach(K:string,V:number = BOILER_DATA){#Render table
+            #print(I)
+            
+            A++
+            HUD:egpText(A,K+": " + round(V,2),vec2(X,Y + 12 * I*Scale))
+            HUD:egpFont(A,"Lucida Console",12*Scale)
+            HUD:egpAlign(A,0,0)
+            
+            I++
+        }
+        
+        #A++
+        #HUD:egpText(2,"TEST",vec2(X,Y))
+        #HUD:egpFont(2,"Lucida Console",10)
+    }
+    
+    
+    
+    
+    function debugThink(){
+        if(!EGP_LOOKUP["debug_engine",number]){debugInit(1)}
+        
+        A = EGP_LOOKUP["debug_engine",number]
+        
+        #A++
+        local I = 0
+        foreach(K:string,V:number = DATA_OUT){
+            #print(I)
+            
+            A++
+            HUD:egpSetText(A,K+": " + round(V,2))
+            #HUD:egpFont(A,"Lucida Console",10)
+            
+            I++
+        }
+        
+        
+        
+        A = EGP_LOOKUP["debug_boiler",number]
+        I = 0
+        foreach(K:string,V:number = BOILER_DATA){
+            #print(I)
+            
+            A++
+            HUD:egpSetText(A,K+": " + round(V,2))
+            #HUD:egpFont(A,"Lucida Console",10)
+            
+            I++
+        }
+    }
+    debugInit(1)
+    
+    
+    function hudInit(IndexOffset){
+        
+        W = 1024 * Scale
+        H = 192 * Scale
+        X = ScrnW/2
+        Y = ScrnH-(H/2)-ScreenMargin
+        PAD = 0
+        
+        A++ #Main backing
+        EGP_LOOKUP["hud_main",number] = A
+        
+        HUD:egpRoundedBox(A,vec2((X)-(PAD/4),(Y)-(PAD/4)),vec2(W+(PAD),H+(PAD)))
+        HUD:egpRadius(A,5)
+        HUD:egpColor(A,vec4(32,32,32,150))
+        
+        
+        local G_P = vec2(X,Y)
+        local G_S = vec2(H/2,H/2)*0.8
+        A++
+        HUD:egpCircleOutline(A,G_P,G_S)
+        
+        A++
+        HUD:egpLine(A,G_P + (vec2(0,G_S:x()*0.75)), G_P + vec2())
+        
+    }
+    
+    hudInit(A)
+}
+
+timer("think",1/10,0,function(){
+    
+    debugThink()
+    
+})

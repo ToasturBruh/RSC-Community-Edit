@@ -1,5 +1,5 @@
 @name rsc_community_edit/extras/nathan_water_sight_glass
-@inputs On Water
+@inputs On SightGlass
 @outputs 
 @persist Short Scale
 @trigger On
@@ -60,13 +60,17 @@ if(first() | dupefinished()){
 
 if(On){
     interval(100)
-    local WaterN = clamp(Water/100,0,1)
+    local WaterN = clamp(SightGlass/100,0,1)
     
     if(Short){
-        holoPos(2,entity():toWorld(vec(0,-0.3,3.75*(WaterN))*Scale))
+        local Lerp = lerp(vec(0,-0.3,0.5),vec(0,-0.3,3.75),WaterN)
+        holoPos(2,entity():toWorld(Lerp)*Scale)
+        local Lerp = lerp(vec(),vec(),WaterN)
         holoScale(2,vec(0.05,0.05,(0.5*WaterN))*Scale)
     }else{
-        holoPos(2,entity():toWorld(vec(0,-0.3,0.5*(1-WaterN))*Scale))
-        holoScale(2,vec(0.05,0.05,(1.07*WaterN))*Scale)
+        local Lerp = lerp(vec(0,-0.3,-6.5),vec(0,-0.3,0),WaterN)
+        holoPos(2,entity():toWorld(Lerp*Scale))
+        local Lerp = lerp(vec(0.05,0.05,0),vec(0.05,0.1,1.07),WaterN)
+        holoScale(2,Lerp*Scale)
     }
 }

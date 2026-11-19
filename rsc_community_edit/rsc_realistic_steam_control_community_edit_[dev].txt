@@ -1,17 +1,17 @@
 @name rsc_community_edit/RSC Realistic Steam Control Community Edit [DEV]
-@inputs Ignite Damper AddCoal AddWater Drivers:array Pod:entity EmBrake Trucks:array
-@outputs Active Warmup MPH SlipMPH KPH V Reverser R8 Throttle Brake Coal Water Steam Temp Cocks Firebox:vector CPU CONSTANT  Force BrakingForce BrakingMul WheelAng
+@inputs Ignite CtlTable:table ShovelCoal Stoker InjectA InjectB BlowdownA BlowdownB Blower Damper CylinderCocks Drivers:array Pod:entity EmBrake Trucks:array
+@outputs Active Warmup MPH SlipMPH KPH V Reverser R8 Throttle Brake Cocks Firebox:vector CPU CONSTANT Force BrakingForce WheelAng
 #Gauges
 @outputs BoilerPSI ChestPressure MainRes EqualRes BrakePipe BrakeCyl
 
 @outputs BrakeInfo:array CarCount
 @outputs Emergency AB16M_Notch LB16M_Notch AB26L LB26L Compressing Reverser
 @persist [Controls Routing]:table Alternate:string ReverserF ReverserB Locked WQ Force Driver:entity 
-@persist [E O B]:entity Mul Band BrakeMul [Idle Fire Wheels Coaling Injector InjectorOff ChuffLO ChuffHI]:string UseKPH Fireman 
-@persist MainRes Compressing [CompressorOn CompressorOff]:string AirBrakeType IncreaseTrainBrake EqualRes [Lever_26L Lever_16M AirBrakeApply AirBrakeRelease Lever_LocoBrake LocoBrakeRelease]:string DecreaseTrainBrake LocoBrakePressure
-@persist CarCount BrakePipe IncreaseLocoBrake DecreaseLocoBrake LB26L_ClickQ  EmergencyBrake [EmergencyBrakeSound BrakeScreech]:string Moving BQ Threshold_Hard BPQ BrakeForce
+@persist [E O B]:entity Mul Band BrakeMul UseKPH Fireman Coldstart
+@persist MainRes Compressing AirBrakeType IncreaseTrainBrake EqualRes DecreaseTrainBrake LocoBrakePressure
+@persist CarCount BrakePipe IncreaseLocoBrake DecreaseLocoBrake LB26L_ClickQ  EmergencyBrake Moving BQ Threshold_Hard BPQ BrakeForce
 @persist CarCount_Init HandBrake HBQ MaxTrainBrakeForce MaxLocoBrakeForce Switching
-@persist ShovelRate BurnRate InjectRate BoilRate HeatRate ThetaDist CN CM ChuffQ DRV Johnson_Bar
+@persist ThetaDist CN CM ChuffQ DRV Johnson_Bar
 #@persist SoundLevel EchoLevel DSPIDX Clt 
 
 #@outputs OM LBQ IHQ THQ ABQ
@@ -21,25 +21,25 @@
 @persist ThrottleN
 
 #Brakes
-@persist Loco_BF Train_BF
+@persist Loco_BF Train_BF Overcome
 
 #Cylinder
 @persist AdmissionPressure MEP #CylinderConst 
 
 #Sound
-@persist DPS DoBark CurLoop CSound WheelAng [SndHolo1 SndHolo2 SndHolo3 SndHolo4]:entity 
+@persist DPS DoBark CurLoop CSound WheelAng [SndHolo1 SndHolo2 SndHolo3 SndHolo4 SndHolo5]:entity 
 @outputs DoBark
 
 #Drivers
-@persist Diameter Slipping SlipRate SlipWeight TE_Spike Sander Sanding Sand:string
+@persist Diameter WheelRPM Slipping SlipRate SlipWeight TE_Spike Sander Sanding SandOn:string SandOff:string
 @outputs Slipping SlipWeight Sanding
 
 #Particles
-@inputs  Whistle1 Whistle2 Chuff1 Chuff2 Chuff3 Chuff4
-@outputs ParticleOn Particle:string WhistleParticle:string Safeties WOn Clt
-@persist PStages:array Soot SootStage ThrottleStage Decayrate SafteyThresh WOn WBoth WhistleParticle:string
+@inputs  Whistle1 Whistle2 #Chuff1 Chuff2 Chuff3 Chuff4
+@outputs ParticleOn Particle:string ParticleBark WhistleParticle:string Safeties WOn
+@persist PStages:table BurnQuality Soot ThrottleStage Decayrate WOn WBoth WhistleParticle:string
 
-@inputs C1L C2L C1R C2R Base2:entity Base3:entity Base4:entity
+@inputs Base2:entity Base3:entity Base4:entity #C1L C2L C1R C2R
 @persist C1L C2L C1R C2R Base:entity
 
 #Consist Exploration
@@ -56,12 +56,13 @@
 #Sound testing
 #@outputs IsPlaying
 
-@trigger Ignite
-@model models/beer/wiremod/watersensor.mdl
+@trigger Ignite ShovelCoal
+@model models/venompapa/wirecdlock.mdl
 
-#Community Edit V1.4.6
-Version = "1.4.6"
-MinConfigVer = "1.0.0"
+
+#Community Edit V1.5.0
+Version = "1.5.1"
+MinConfigVer = "1.1.0"
 MinControlVer = "1.0.0"
 
 #Changelog
@@ -70,10 +71,9 @@ MinControlVer = "1.0.0"
 #Magnum - Main code and sound improvements
 #Rusty  - PT brake edit, particles
 #Toastur, Big E - Simulation and sound improvements
-#Toastur - Traction code rewrite
+#Toastur - Traction code rewrite, boiler sim
 
 #TO-DO:
-#Add wheelslip back.
 #Complete fireman sim.
 #Experiment with discrete control chips (similar to a control stand) to allow for input customization - e.g. different brake schedules.
 
@@ -114,23 +114,52 @@ The rest of the steps are optional but neat.
 One last little tip: the "CONSTANT" output is a constant value of 1. Very Handy.
 
 FIREMAN'S GUIDE:
-Keep Coal and Water around 100. If you add too much of either, temperature and steam generation gets nerfed.
-Keep Temperature and Steam as high as you can. Max is 200.
-If your temperature is sinking, use the Damper. It will boost your temperature greatly but will eat a lot more coal.
+Use the blower to increase fire temp at a stall. Fire transfers more heat to the boiler the hotter it gets.
+Damper is used as a ram air intake that forces air through the fire when moving, useful when coasting down grade.
+The biggest source of air is the draft from the vaccum created by the cylinders forcing exhaust through the smokebox.
+
+Water must be kept as high as reasonably possible, it's your thermal "battery".
+As boiler pressure drops so does the boiling point, which causes the water to start flashing in to steam that will self-maintain your pressure.
+As the water begins to evaporate, keep a careful eye on the water level - heavy load or a careless engineer will cause the water level to drop dramatically.
+
 
 DRIVER'S GUIDE:
-The Reverser increments by 1/4ths from -1 to +1. More extreme reverser values (closer to 1) will give you more starting force but a lower top speed.
-As you approach the top of your "power band," you will stop accelerating until you lower the reverser.
-Reverser values of 0.125 or -0.125 give you maximum horsepower (and by extension top speed) but you won't get any starting force.
 
 Happy Steaming!
 ]#
 
 if(first()|dupefinished()){
     
-    #include "rsc_community_edit/locomotives/s1a_0-8-0"
+    #Locomotive config to use
+    #include "rsc_community_edit/locomotives/s1a_0-8-0" 
+    
+    Fireman     = 0 #If 0, automatic fireman. If 1, fireman is required.
+    Coldstart   = 0 #If manual firing is enabled, require a cold start? Boiler and fire will start zero'd out.
+    
+    #--------------
+    #Control Config
+    #--------------
 
-    IHP = HeatingSurfaceArea/IHP_Efficiency
+    #include "rsc_community_edit/controls/default"
+    
+    
+    #Particle Config (Rusty's smoke code)
+    #made by Da Rustyrail, edited by Toastur
+    Decayrate = 10 #How fast coal dust dissapears from the smoke (set to 0 for constant smoke color)
+    
+    
+    Soot = 50 #Set the starting smoke color
+    
+    
+    #End of Config
+    
+    E = entity()
+    B = E:isWeldedTo()
+    Base = B
+    O = owner()
+    #runOnChat(1)
+    
+    IHP = HeatingSurfaceArea/IHP_Efficiency #Approximate IHP
     #MaxEvapRate = HeatingSurfaceArea*60 #55 lb/hr of steam per sqft of firebox area
     MaxEvapRate = IHP * 30 #Reverse of boiler efficency, 30 lb/steam per hrosepower. Probably not great, better coming soon.
     #print(MaxEvapRate)
@@ -140,95 +169,15 @@ if(first()|dupefinished()){
     #print(CylinderConst)
     #if(SlipLimit > TE_Starting){print("Your slip threshold is higher than your maximum starting effort. Config may be off.")}
     
-    BoilerPSI = BoilerMaxPSI
+    #BoilerPSI = BoilerMaxPSI
     
-    GravityFactor = 386/gravity()
+    GravityFactor = 386/round(gravity())
     
-    if(gravity() != 386){
+    if(round(gravity()) != 386){
         printColor(vec(255,10,0),"[RSC] WARNING: sv_gravity is set to " + gravity() + ".")
         printColor(vec(255,10,0),"      Earth's gravity is 386 in/s, consider inserting 'sv_gravity 386' in to your server's launch options.")
         printColor(vec(255,10,0),"      RSC will attempt to compensate...")
     }
-    
-    #Mul = 306 #The General Force Multiplier, determines pulling power. 200 is a good value.
-    #Band = 15 #The "Power Band." The (Highly Idealized) speed range (in MPH) over which you can go before you need to reduce the reverser value.
-    #In Practice it's closer to Half what you have here. 30 is a good value.
-    #BrakeMul = 1 #The Braking force multiplier, independent of the trainline airbrakes. 2 is a good value to start.
-    #SoundLevel = 85 #This setting controls how far the main chugging can be heard. 85 is a good number.
-    #EchoLevel = 110 #This setting controls how far the chugging echo can be heard. 20-40 units above SoundLevel is good.
-    
-    Fireman = 0 #If 0, automatic fireman. If 1, fireman is required.
-    #DRV = 1 #If 1, you have near continuous backwards and forwards reverser movement. If 2, you get 6 reverser positions.
-    #Johnson_Bar = 0 #If 1, reverser will behave like a Johnson Bar reverser. If 0, will behave like Walschaerts.
-    
-    
-    #--------------
-    #Control Config
-    #--------------
-    
-    #You can actually change this, but be careful.
-    #Wiremod key names do not always coincide with source key names!
-    
-    #include "rsc_community_edit/controls/default"
-    
-    
-    #Ignore this
-    ControlPrintOrder = array("ReverserF","ReverserB","IncreaseThrottle","DecreaseThrottle","IncreaseDynamics","DecreaseDynamics","IncreaseTrainBrake","DecreaseTrainBrake","IncreaseLocoBrake","DecreaseLocoBrake","EmergencyBrake","HandBrake","Sander")
-    
-    
-    
-    #Don't change these unless you absolutely have to
-    ShovelRate = 5
-    InjectRate = 0.5
-    BurnRate = 0.105
-    HeatRate = 0.8
-    BoilRate = 0.105
-    
-    #Suddenly Sounds! Don't change these unless you know what you're doing.
-    Idle = "moztrainsounds/steam/generic/blower.wav"
-    Fire = "usa_locomotive_sounds_3/steam/fire/fire2.wav"
-    Wheels = "gsgtrainsounds/misc/wheels_jointed.wav"
-    Coaling = "moztrainsounds/steam/generic/coal_shoveling_loop.wav"
-    Injector = "moztrainsounds/steam/generic/water_injectors_loop.wav"
-    Injector_Off = "moztrainsounds/steam/generic/water_injectors_end.wav"
-    Sand = ""
-
-    Lever_16M = "trans_train_sounds/controls/aar/auto_lever_move.wav"
-    Lever_26L = "trans_train_sounds/controls/aar/auto_air_apply_initial_alt.wav"
-    Lever_LocoBrake = "loknoisbygeordie/steam/brakes/indy_brake_set_2.wav"
-    Lever_HandBrake = "loknoisbygeordie/steam/brakes/handbrake_set_2.wav"
-    BrakeScreech = "steam/wheels/brake_squeal_1_loop.wav"             #Brake Screech
-    AirBrakeApply = "trans_train_sounds/controls/kc92/6sl_service.wav"     #Sounds for Trainline Airbrakes
-    AirBrakeRelease = "trans_train_sounds/controls/kc92/6sl_release.wav"   
-    LocoBrakeRelease = "loknoisbygeordie/steam/brakes/indy_brake_release.wav" #Locomotive brakes' apply sounds are very quiet so we just included a release.
-    EmergencyBrakeSound = "trans_train_sounds/controls/aar/auto_lever_emergency.wav"  #The sound of the engineer shitting his pants
-    CompressorOn = "/locnoisbygeordie/steam/misc/air_pump5_loop_slow.wav"
-    CompressorOff = "/locnoisbygeordie/steam/misc/air_pump5_end_slow.wav"
-    
-    
-    
-    
-    # Particle Config (Rusty's smoke code)
-    # made by Da Rustyrail
-    Decayrate=10 ##How fast coal dust dissapears from the smoke (set to 0 for constant smoke color)
-    
-    # particles can also be 'null' which won't play anything
-    PStages = array("clag_2stroke_2","White_100_Thin","White_100_Medium","White_100_Thick","Gray_100_Thin","Gray_100_Medium","Gray_100_Thick","Black_100_Thin","Black_100_Medium","Black_100_Thick")
-    WhistleParticle="White_100_Thin"
-    
-    Soot=50 #set the starting smoke color
-    SafteyThresh=180 #The pressure at which the safety valves open
-    
-    
-    #End of Config
-    
-    
-    E = entity()
-    B = E:isWeldedTo()
-    Base = B
-    O = owner()
-    runOnChat(1)
-    
     
     holoCreate(1,Base:toWorld(vec()))
     holoParent(1,Base)
@@ -250,23 +199,26 @@ if(first()|dupefinished()){
     holoAlpha(4,0)
     SndHolo4 = holoEntity(4)
     
-    ThetaDist = 0
+    holoCreate(5,Base:toWorld(vec()))
+    holoParent(5,Base)
+    holoAlpha(5,0)
+    SndHolo5 = holoEntity(5)
     
-    CN = 1
-    CM = 5
     ChuffQ = 0
     Active = Warmup = 0
     if(Fireman){
-        Coal = Water = 50
-        Temp = Steam = 0
+        #Coal = Water = 50
+        #Temp = Steam = 0
     }else{
-        Coal = Steam = Temp = Water = 100
+        #Coal = Steam = Temp = Water = 100
     }
     Cocks = 0
     Throttle = Brake = Reverser = 0
     SwapQ = DQ = WQ = CQ = 0
     CONSTANT = 1
     
+    #Ignore this
+    ControlPrintOrder = array("ReverserF","ReverserB","IncreaseThrottle","DecreaseThrottle","IncreaseDynamics","DecreaseDynamics","IncreaseTrainBrake","DecreaseTrainBrake","IncreaseLocoBrake","DecreaseLocoBrake","EmergencyBrake","HandBrake","Sander")
     
     
     #Weight handling
@@ -304,6 +256,7 @@ if(first()|dupefinished()){
     
     foreach(K,V:entity = Trucks){V:setMass((WeightHalfKg*0.5)/Trucks:count())}
     
+    #Build controls
     foreach(K,V:string = Controls){
         if(V:find(" !ALT")){
             Routing[K,number] = 1
@@ -347,9 +300,9 @@ if(first()|dupefinished()){
 
     }
     if(Fireman){
-        timer("heartbeat",500)
+        #timer("heartbeat",500)
     }
-    timer("Chuff",100)
+    #timer("Chuff",100)
 
     #Sound Index Table:
     #0 Idle/WarmupFire
@@ -747,11 +700,11 @@ if(first()|dupefinished()){
         local ERev = EExp[3,string]:toNumber()
     
     
-        if((VMaj > EMaj) | (VMin > EMin) | (VRev > ERev)){Conflict = -1} #Dev build
-        if((VMaj < EMaj) | (VMin < EMin) | (VRev < ERev)){Conflict = 1}  #Invalid version
+        if((VMaj > EMaj) | (VMin > EMin) | (VRev > ERev)){return -1} #Dev build
+        if((VMaj < EMaj) | (VMin < EMin) | (VRev < ERev)){return 1}  #Invalid version
         
         
-        return Conflict
+        return 0
     }
     
     if(versionCheck(ConfigVer,MinConfigVer) == 1){printColor(vec(255,100,0),"[RSC] Config version outdated. Proceed with caution and consider updating.")}
@@ -760,8 +713,14 @@ if(first()|dupefinished()){
     
     Dt = 1/20
     Interval = Dt*1000
-    timer("Chuff",Interval)
-    timer("think",Interval)
+    #timer("Chuff",Interval)
+    #timer("think",Interval)
+    
+    
+    FiremanDt = 1/10
+    FiremanInterval = FiremanDt*1000
+    
+    ##include "rsc_community_edit/fireman_sim"
 }#End init
 
 event httpLoaded(Body:string, Size:number, Url:string){
@@ -773,7 +732,7 @@ event httpLoaded(Body:string, Size:number, Url:string){
         printColor(vec(255,10,0),"[RSC] RSC is out of date!")
         printColor(vec(255,10,0),"      Consider updating from the GitHub:")
         printColor(vec(100,100,200),"      https://github.com/ToasturBruh/RSC-Community-Edit")
-        owner():soundPlay("v_err",0,"garrysmod/content_downloaded.wav")
+        #owner():soundPlay("v_err",0,"garrysmod/content_downloaded.wav")
     }
     
     if(Conflict == 0){#Up to Date
@@ -802,19 +761,9 @@ if(clk("THQ")){
 #========Synchronous
 #if(clk("think")){
 timer("think",Dt,0,function(){
-    #Warmup
-    if(Warmup){
-        if(Steam >= 100){
-            Active = 1
-            Warmup = 0
-            B:soundPlay(0,0,Idle)
-            soundPitch(10,0)
-            
-        }
-    }elseif(Active){
-        #Running
-            
-            
+    if(Active){
+    #Running
+    
     Driver = Pod:driver()
     
     if(Driver){
@@ -847,6 +796,7 @@ timer("think",Dt,0,function(){
     MPH = abs(Spd/17.6)
     KPH = abs(Spd/10.936)
     WheelRPM = abs(((MPH+SlipMPH)*336)/Diameter)
+    WheelRPS = WheelRPM/60
     WheelRPH = WheelRPM*60
     
     Moving = MPH>Threshold_Hard
@@ -868,41 +818,43 @@ timer("think",Dt,0,function(){
         #----------
         #Compresors
         #----------
-        if((MainRes<30) & !Compressing){
-            Compressing = 1
-            Base:soundPlay("compressor",0,CompressorOn)
-        }elseif((MainRes>150) & Compressing){
-            Compressing = 0
-            Base:soundPlay("compressor",0,CompressorOff)
+        if(BoilerPSI > (BoilerMaxPSI*0.05) | Fireman == 0){
+            if((MainRes < 30) & !Compressing){
+                Compressing = 1
+                Base:soundPlay("compressor",0,CompressorOn)
+            }elseif((MainRes > 150) & Compressing){
+                Compressing = 0
+                soundStop("compressor",3)
+                #Base:soundPlay("compressor",0,CompressorOff)
+            }
+            if(Compressing){MainRes += 2*NumCompressors * Dt}
         }
-        if(Compressing){MainRes += 2*NumCompressors * Dt}
-        
         #--------------------
         #Equalizing Reservoir
         #--------------------
         
 
-            #16M Trainline
-            if(IncreaseTrainBrake & (AB16M_Notch<1) & !ABQ){
-                ABQ = 1
-                Pod:soundPlay(1,1,Lever_16M)
-                AB16M_Notch++
-            }elseif(DecreaseTrainBrake & (AB16M_Notch>-1) & !ABQ){
-                ABQ = 1
-                Pod:soundPlay(1,1,Lever_16M)
-                AB16M_Notch--
-            }elseif(!DecreaseTrainBrake & !IncreaseTrainBrake & ABQ){
-                ABQ = 0
-            }
+        #16M Trainline
+        if(IncreaseTrainBrake & (AB16M_Notch<1) & !ABQ){
+            ABQ = 1
+            #Pod:soundPlay(1,1,Lever_16M)
+            AB16M_Notch++
+        }elseif(DecreaseTrainBrake & (AB16M_Notch>-1) & !ABQ){
+            ABQ = 1
+            #Pod:soundPlay(1,1,Lever_16M)
+            AB16M_Notch--
+        }elseif(!DecreaseTrainBrake & !IncreaseTrainBrake & ABQ){
+            ABQ = 0
+        }
             
         #ER Hiss
         if((AB16M_Notch==1) & (EqualRes>0) & !THQ){
             THQ = 1
-            Pod:soundPlay("ab_apply",4,AirBrakeApply)
+            #Pod:soundPlay("ab_apply",4,AirBrakeApply)
             timer("THQ",6000)
         }elseif((AB16M_Notch==-1) & (EqualRes<90) & !THQ){
             THQ = 1
-            Pod:soundPlay("ab_apply",4,AirBrakeRelease)
+            #Pod:soundPlay("ab_apply",4,AirBrakeRelease)
             timer("THQ",6000)
         }
 
@@ -912,9 +864,11 @@ timer("think",Dt,0,function(){
         }elseif((AB16M_Notch==-1) & (EqualRes<90)){
             EqualRes+=(4*Dt)
         }
+        
         #----------
         #Brake Line
         #----------
+        
         if(changed(CarCount) & (($CarCount)>0)){
             BrakePipe *= (CarCount - $CarCount)/CarCount
         }
@@ -938,22 +892,22 @@ timer("think",Dt,0,function(){
         #Locomotive Brake
         #----------------
 
-            #16M Independent
-            if(IncreaseLocoBrake & (LB16M_Notch<1) & !LBQ){
-                LBQ = 1
-                LB16M_Notch++
-                if(LB16M_Notch==1){Pod:soundPlay(1,1,Lever_LocoBrake)}
-            }elseif(DecreaseLocoBrake & (LB16M_Notch>-1) & !LBQ){
-                LBQ = 1
-                LB16M_Notch--
-            }elseif(!DecreaseLocoBrake & !IncreaseLocoBrake & LBQ){
-                LBQ = 0
-            }
+        #16M Independent
+        if(IncreaseLocoBrake & (LB16M_Notch<1) & !LBQ){
+            LBQ = 1
+            LB16M_Notch++
+            #if(LB16M_Notch==1){Pod:soundPlay(1,1,Lever_LocoBrake)}
+        }elseif(DecreaseLocoBrake & (LB16M_Notch>-1) & !LBQ){
+            LBQ = 1
+            LB16M_Notch--
+        }elseif(!DecreaseLocoBrake & !IncreaseLocoBrake & LBQ){
+            LBQ = 0
+        }
         
         #LB Hiss
         if((LB16M_Notch==-1) & (LocoBrakePressure>0) & !IHQ){
             IHQ = 1
-            Pod:soundPlay(15,4,LocoBrakeRelease)
+            #Pod:soundPlay(15,4,LocoBrakeRelease)
             timer("IHQ",6000)
         }
         
@@ -984,8 +938,8 @@ timer("think",Dt,0,function(){
                 V:propPhysicalMaterial("slipperyslime")
             }
             
-            Pod:soundPlay(15,0,EmergencyBrakeSound)
-            Pod:soundPlay(1,1,AirBrakeType ? Lever_26L : Lever_16M)
+            #Pod:soundPlay(15,0,EmergencyBrakeSound)
+            #Pod:soundPlay(1,1,AirBrakeType ? Lever_26L : Lever_16M)
             
             
             Throttle = 0
@@ -1005,13 +959,15 @@ timer("think",Dt,0,function(){
         }
         
         #Train Brake Physprops
-        if(Brake & (MPH<Threshold_Hard) & !BPQ){
+        if(TE_Force > BrakingForce){Overcome = 1}else{Overcome = 0}
+        
+        if(Brake & (MPH<Threshold_Hard) & !BPQ & !Overcome){
             carScan()
             BPQ = 1
             Trucks:abRest()
             Locked = 1
             
-        }elseif(!Brake & BPQ){
+        }elseif((!Brake & BPQ) | Overcome){
             BPQ = 0
             E:abRelease()
             Locked = 0
@@ -1056,39 +1012,46 @@ timer("think",Dt,0,function(){
             BrakingForce = 0
             #LocoBrakingForce = 0
         }
-    
-
-    
+        
+        
+        
         #Throttle
-        if(IncreaseThrottle|DecreaseThrottle){
+        if(IncreaseThrottle | DecreaseThrottle){
             Throttle += (0.25)*(IncreaseThrottle-DecreaseThrottle)
             Throttle = clamp(Throttle,0,10)
-            ThrottleN = Throttle/10
+            ThrottleN = (Throttle/10) * (Fireman ? clamp(BoilerPSI/(BoilerMaxPSI * 0.25),0,1) : 1) #Full power at 25% of max boiler PSI if manual firing enabled.
         }
+        
         #Velocity Info
 
         
         #Cylinder Cocks
-        Cocks = (Throttle > 0)&(MPH < 3)
+        Cocks = CylinderCocks & ChestPressure > 0
         
+        if(changed(Cocks) & Cocks){
+            Base:soundPlay("cyl_cocks",0,CylinderCocksOn)
+            soundVolume("cyl_cocks",lerp(0,1,ChestPressure/(BoilerMaxPSI*0.25)))
+        }
+        if(changed(Cocks) & !Cocks){
+            soundStop("cyl_cocks",1)
+        }
+        
+        #print(_HUD_PRINTCENTER,"Cocks" + Cocks + "\nVol " + lerp(0,1,ChestPressure/(BoilerMaxPSI*0.25)))
         
         #Chuff Sound Selection
         #Chuff Sound Modulation
         
         #Wheelslip
-        #if(Throttle>(ThrottleUpper*( (MPH/(Band/(1.2+abs(Reverser))))+1))&Spin<(Throttle*(0.6))&Reverser!=0){Spin+=(0.0625)}
-        #elseif(Throttle<(ThrottleLower*(MPH/(Band/(1.2+abs(Reverser))))+1)&Spin>1&Reverser!=0){Spin-=0.0625}
-        #elseif(Reverser==0&Spin>1){Spin-=0.0625}        
         
         if(changed(Sander) & Sander){
             Sanding = !Sanding
-            if(Sanding){Pod:soundPlay("sanding",0,"/gsgtrainsounds/misc/cab/sand_loop.wav")}
-            if(!Sanding){Pod:soundPlay("sanding",0,"/gsgtrainsounds/misc/cab/sand_end.wav")}
+            if(Sanding){Pod:soundPlay("sanding",0,SandOn)}
+            if(!Sanding){Pod:soundPlay("sanding",0,SandOff)}
         }
         
         
         local Windup = Dt/4
-        local TE_Slip = (TE_LBF * ThrottleN * TE_Spike)*(Sanding ? 0.75 : 1)
+        local TE_Slip = (TE_LBF * ThrottleN * TE_Spike)*(Sanding ? 0.75 : 1) #Find wheelslip threshold, TE * Throttle * TE Spike * Sanding
         if(TE_Slip > SlipLimit){SlipRate += (1*Windup)}
         if(SlipRate > 0 & TE_Slip < (SlipLimit*0.75)){SlipRate -= (1*Windup*4)}
         TE_Spike = 1
@@ -1096,7 +1059,7 @@ timer("think",Dt,0,function(){
         SlipRate = clamp(SlipRate,0,1)
         SlipWeight = sqrt(SlipRate)
         
-        SlipMPH = 50*SlipWeight
+        SlipMPH = 50*SlipWeight #Add 50 MPH at a full spinout
         
         #print(TE_LBF*(Throttle/10) +" vs "+ SlipLimit + " at rate: " + SlipWeight)
         
@@ -1115,35 +1078,80 @@ timer("think",Dt,0,function(){
 
         if(Reverser!=0){
             
-            #AAHHHHHHHH
-            #AAHHHHHHHHHHHHHHHHHHHHHHH
+            ChestPressure = BoilerPSI * (Throttle / 10)
             
-            #TE in Source is in units of kg-in/s^2
-            #1 LBF = 32.17 lb-in/s^2
-            #print(((IHP*375)/MPH)*(Throttle/10))
-            #print(Throttle/10)
+            if(Fireman){#We're simulating the boiler, so I can do more here.
+                
+                
+                local CylVolFt = CylinderVolume/1728 #CuIn to CuFt
+                local EPS = ((WheelRPM/60)*(2*CylinderCount)) #Exhausts Per Second, double acting
+                local SteamSpecificVol = 380/(14.25 + ChestPressure)
+                local CylMass = CylVolFt/SteamSpecificVol #Mass inside one cylinder, Volume/SpecificVol for mass
+                local CylinderSteamUseTick = EPS*(CylMass*(Cutoff/CutoffMax))*Dt
+                
+                SteamMass -= CylinderSteamUseTick
+                                
+                CylinderWeighted = clamp(BoilerPSI/(BoilerMaxPSI*0.25),0,1)#If firing manually, use boiler PSI for cylinder use.
+                
+                #print(_HUD_PRINTCENTER,"STEAM USE TICK: " + round(CylinderSteamUseTick,2) + "\nSTEAM USE SCND: " + round(CylinderSteamUseTick*60,2) + "\nCYL VOL FT3: " + round(CylVolFt,2))
+                
+            }else{#Logic for non-boiler sim
+                
+                #AAHHHHHHHH
+                #AAHHHHHHHHHHHHHHHHHHHHHHH
+                #PIBBYY GLITCH!!!
+                
+                #TE in Source is in units of kg-in/s^2
+                #1 LBF = 32.17 lb-in/s^2
+                #print(((IHP*375)/MPH)*(Throttle/10))
+                #print(Throttle/10)
+                #Steam volume to mass
+                #Lb/steam per hour
+                #1728 CuIn per foot
+                #Cutoff = 0.85
+                
+                
+                local SteamSpecificVol = 380/(14.25 + ChestPressure)
+                
+                local CylinderSteamUse = (((WheelRPH * (CylinderVolume*(Cutoff/CutoffMax)))/1728)*SteamSpecificVol) * ThrottleN * CylinderCount #CuIn to CuFt
+                #local CylinderSteamUseTick = (CylinderSteamUse/3600)*Dt #Steam use/hour to /second
+                
+                
+                
+                #local CylinderWeighted = clamp(1-((1*(CylinderSteamUse/(MaxEvapRate/2)))-1)^2,0,1)
+                
+                
+                #ChestPressure = AdmissionPressure
+                
+                AdmissionPressure = BoilerMaxPSI * ThrottleN #Very approximated, not great.
+                
+                local BoilerRemainder = MaxEvapRate-CylinderSteamUse
+                                                                                  #*3 for gameplay reasons
+                CylinderWeighted = sqrt(1+clamp((BoilerRemainder/(MaxEvapRate*3)),-1,0))#Weighted use of boiler output.
+                
+                ChestPressure = AdmissionPressure * CylinderWeighted
+                
+                #[
+                print(_HUD_PRINTCENTER,
+                "TE FORCE: " + round(TE_Force) +
+                "\nTE LBF: " + round(TE_LBF*ThrottleN) +
+                "\nBF:     " + round(BrakingForce)+
+                "\nLOCO_BF: " + round(Loco_BF) +
+                "\nTRAIN_BF:" + round(Train_BF) +
+                "\nBC: "      + round(BrakeCyl) +
+                "\n\nBOILER LIMIT:  " + round(MaxEvapRate) +
+                "\nCYLINDER STEAM: " + round(CylinderSteamUse) +
+                "\nCYLINDER WEIGHT:" + CylinderWeighted +
+                "\REMAINDER: " + BoilerRemainder)
+                ]#
+            }
             
-            #Steam volume to mass
-            #Lb/steam per hour
-            #1728 CuIn per foot
-            #Cutoff = 0.85
-            
-            CylinderSteamUse = (((WheelRPH * (CylinderVolume*(Cutoff/CutoffMax)))/1728)*SteamVolume)*ThrottleN*CylinderCount
-            #local CylinderWeighted = clamp(1-((1*(CylinderSteamUse/(MaxEvapRate/2)))-1)^2,0,1)
-            
-            AdmissionPressure = BoilerMaxPSI * ThrottleN #Very approximated, not great.
-            
-            #ChestPressure = AdmissionPressure
-            
-            local BoilerRemainder = MaxEvapRate-CylinderSteamUse
-            local CylinderWeighted = sqrt(1+clamp((BoilerRemainder/(MaxEvapRate*3)),-1,0))#Weighted use of boiler output.
-            ChestPressure = AdmissionPressure * CylinderWeighted
-            
-            TE_LBF   = (IHP*375)/(MPH)#*(1+CylinderWeighted)
+            TE_LBF = (IHP*375)/(MPH) #*(1+CylinderWeighted)
             #TE_LBF = CylinderEffort
             #TE_Starting = TE_Starting * sqrt(Reverser)#Reverser decay???
-            local TE_StartingDecay = TE_Starting * sqrt(abs(Reverser))
-            if(TE_LBF > TE_StartingDecay){TE_LBF = TE_StartingDecay}#Limit TE to your starting
+            
+            local TE_StartingDecay = TE_Starting * sqrt(abs(Reverser)) #Limits TE at lower cutoff settings
+            if(TE_LBF > TE_StartingDecay){TE_LBF = TE_StartingDecay} #Limit TE to your starting
             #if(TE_LBF > TE_Starting){TE_LBF = TE_Starting}
             #local ReverserDecay = sqrt(Reverser)               #*2 coconut
             TE_Force = (TE_LBF * ThrottleN * CylinderWeighted) * GravityFactor * 4.448222 * 39.3701 * 0.5 * (Dt) * sign(Reverser)
@@ -1172,43 +1180,75 @@ timer("think",Dt,0,function(){
         
         B:applyForce(-E:up()*(TE_Force-BrakingForce))
         
+        DATA_OUT = table(
+            "te_lbf" = TE_LBF,
+            "te_force" = TE_Force,
+            "be_force" = BrakingForce,
+            "mep"      = MEP,
+            "mph" = MPH,
+            "reverser" = Reverser,
+            "throttle" = Throttle,
+            "boiler_psi" = BoilerPSI,
+            "air_bp" = BrakePipe,
+            "air_bc" = BrakeCyl,
+            "air_mr" = MainRes,
+            "air_er" = EqualRes
+        )
     }else{
         #Off
         Cocks = 0
     }
    
-
-    ParticleOn=Active
-
+    #Particles
     
-    Soot=Soot-Decayrate
-    clamp(Soot,0,100)
-
-    if(AddCoal){
-        Soot=100
-    }
+    ParticleOn = Active
+    Soot = clamp(Soot - Decayrate*Dt,0,100)
     
     if(changed(Whistle1|Whistle2)){
-    WOn=Whistle1|Whistle2
-    
-    WBoth=Whistle1&Whistle2
-    
-    WhistleParticle=WBoth ? "White_100_Medium" : "White_100_Thin"
+        WOn = Whistle1 | Whistle2
+        
+        WBoth = Whistle1 & Whistle2
+        
+        WhistleParticle = WBoth ? "White_100_Medium" : "White_100_Thin"
     }
 
 
-    Safeties=Steam>SafteyThresh
-    
-    SootStage=(Soot>=33)+(Soot>=66)
-    ThrottleStage=(Throttle>0)+(Throttle>=3)+(Throttle>=6)
-    
-    if(ThrottleStage & (Chuff1|Chuff2|Chuff3|Chuff4)){
-        Particle=PStages[ThrottleStage+1+((SootStage==1)*3)+((SootStage==2)*6),string]
-    }
-    else{
-        Particle=PStages[1,string]
-    }
+    Safeties = BoilerPSI > BoilerMaxPSI
 
+    local BurnFactor = 1 * (1-(Soot/100)) * BurnQuality
+    #print(_HUD_PRINTCENTER,"Soot " + Soot + "\nQality " + BurnQuality + "\nBurn Factor " + BurnFactor)
+    
+    local P_R = 1 + round((PStages:count()-1)*BurnFactor) #Row, quality
+    local P_C = 1 + ceil((PStages[P_R,table]:count()-1)*ThrottleN)*(WheelRPM > LoopThresholds[1,number] ? 1 : ParticleBark) #Column, volume
+    
+    Particle = PStages[P_R,table][P_C,string]
+    ParticleBark = 0
+    
+    #[
+    print(_HUD_PRINTCENTER,
+    "QUALITY " + P_R +
+    "\nVOLUME " + P_C +
+    "\nQUALITY " + BurnQuality)
+    ]#
+    
+    if(CrownSheetHealth <= 0){#I have died in a boiler explosion.
+        Base:applyForce(randvec(vec(-1,-1,-1),vec(1,1,1))*1000000*Base:mass())
+        
+        Pod:killPod()
+        
+        Particle = "cinefx_goldrush"
+        
+        SteamMass = SteamVolume = SteamEnergy = 0
+        WaterMass = WaterVolume = WaterEnergy = 0
+        GrateMass = GrateEnergy = 0
+        FireTemp = 1500
+        
+        Active = 0
+        CrownSheetHealth = 100
+        soundPurge()
+        Base:soundPlay("explosion",0,BoilerExplosion)
+    }
+    #[
     if(C1L==1){Base:soundPlay(100,0,"triggerboyswhistles/safeties.wav")}
     else{soundStop(100,1)} 
     if(C2L==1){Base2:soundPlay(101,0,"triggerboyswhistles/safeties.wav")}
@@ -1217,33 +1257,72 @@ timer("think",Dt,0,function(){
     else{soundStop(102,1)} 
     if(C2R==1){Base4:soundPlay(103,0,"triggerboyswhistles/safeties.wav")}
     else{soundStop(103,1)}
-    
-    timer("think",Interval)
+    ]#
+    #timer("think",Interval)
  
 })#else{
 
 #Ignition
 if(Ignite & ~Ignite){
-    if(Active|Warmup){
-        Warmup = Active = 0
-        Reverser = Throttle = 0
-        Coal = Water = Fireman ? 50 : 100
-        Temp = Steam = Fireman ? 0 : 100
-        soundStop(0)
-        soundStop(10)
-        soundStop(3)
-        Firebox = vec()
-    }else{
-        if(Fireman){
+    if(Active){#Turn it off
+        soundStop("idle",3)
+        soundStop("fire",3)
+        soundStop("compressor",3)
+        soundPurge()
+        
+        
+        Firebox = vec(0,0,0)
+        
+        Active = 0
+        
+    }else{#LIVE
+        Base:soundPlay("idle",0,Idle)
+        Base:soundPlay("fire",0,Fire)
+        
+        Active = 1
+        
+        if(Fireman){#Init boiler
+            if(Coldstart){
+                #Boiler fill
+                FillFactor = (BoilerSoundMin+(SightGlassHeight/2))/BoilerD #Fill the boiler to half of the sight glass
+                WaterHeight = lerp(0,BoilerD,FillFactor)
+                WaterVolume = BoilerVolume*FillFactor #ft^3
+                
+                FireTemp = 1500
+                SteamMass = 0
+            }else{#Hotstart
+                #Boiler fill
+                FillFactor = (BoilerSoundMin+(SightGlassHeight/2))/BoilerD #Fill the boiler to half of the sight glass
+                WaterHeight = lerp(0,BoilerD,FillFactor)
+                WaterVolume = BoilerVolume*FillFactor #ft^3
+                SightGlass = 75
+                WaterTemp = 212
+                
+                #Fill firebox
+                GrateHeight = 5
+                local GrateVolume = (GrateL * GrateW * GrateHeight)/1728 #Convert to ft3 and fill with fuel density.
+                GrateMass = GrateVolume * FuelDensity
+                
+                FireTemp = 2000
+                
+                #Steam gen
+                
+                local PSIA = BoilerMaxPSI + 14.7
+                local BoilingPoint = 212+(12*sqrt(PSIA-14.7)) #Potbob boiling in a sponge of shit
+                
+                WaterTemp = BoilingPoint
+                
+                BoilerPSI = BoilerMaxPSI
+            }
+        }else{#Automatic "firing"
+            SightGlass = 75
             
-            Warmup = 1
-            B:soundPlay(0,0,Fire)
-        }else{
-            Firebox = vec(255,Temp,(Temp > 100)*(Temp - 100))
-            Active = 1
-            Warmup = 0
-            B:soundPlay(0,0,Idle)
-            soundPitch(10,0)
+            BoilerPSI = BoilerMaxPSI
+            
+            FireTemp = 2000
+            BurnQuality = 1
+            local FireFactor = lerp(0,1,(FireTemp-900)/(3000-900)) #Color factor
+            Firebox = vec(255,255*FireFactor,240*FireFactor^2)
         }
     }
 }
@@ -1264,67 +1343,309 @@ timer("controls",Dt,0,function(){
     
     Cutoff = lerp(CutoffMin,CutoffMax,abs(Reverser))#(CutoffMin +(CutoffMax-CutoffMin)*abs(Reverser))
     
-    #Fireman Controls
-    if(Fireman){
-        if(~AddCoal){
-            if(AddCoal){
-                B:soundPlay(13,0,Coaling)
-            }else{
-                soundStop(13)
-            }
+})
+
+
+if(ShovelCoal & ~ShovelCoal & Fireman){
+    local CoalToAdd = FuelDensity * ShovelVolume #Mass of coal shovel to add
+    GrateMass = GrateMass + CoalToAdd #Calculate coal mass (lb)
+    FireTemp = ((ShovelVolume * 1500) + (FuelVolume * FireTemp))/(ShovelVolume + FuelVolume) #Balance fire temp with incoming coal
+    
+    Pod:soundPlay("coal_shovel",0,Coaling)
+    Soot += 25 
+}
+
+timer("fireman",FiremanDt,0,function(){
+    
+    #[
+          /  M  \
+         /-------\
+        / D  |  V \
+    ]#
+    
+    if(Fireman & Active){
+    
+        #FIREBOX ------------------------------------------------------------------------------
+        
+        if(Stoker){
+            Stoker = clamp(Stoker,0,1)
+            local CoalToAdd = StokerRate * FiremanDt * Stoker #Mass of stoker to add
+            local StokerVolume = StokerRate / FuelDensity
+            GrateMass = GrateMass + CoalToAdd #Calculate coal mass (lb)
+            FireTemp = ((StokerVolume * 1500) + (FuelVolume * FireTemp))/(StokerVolume + FuelVolume)
         }
-        if(~AddWater){
-            if(AddWater){
-                B:soundPlay(14,0,Injector)
-                soundVolume(14,0.5)
-            }else{
-                B:soundPlay(14,3,InjectorOff)
-                soundVolume(14,0.5)
-            }
+        
+        if(BoilerSoundMin > WaterHeight){CrownSheetHealth -= 1*FiremanDt}#-1 HP/S
+        
+        GrateEnergy = GrateMass * FuelEnergy #Calculate BTU of grate
+        #1 BTU to increase 1lb of water's temp by 1F
+        #970 BTU/lb at boiling point to generate steam.
+        
+        local TheoreticalTemp = GrateEnergy/(AirHeatCapacity*FireboxMass)
+        local RequiredAir = GrateMass * AirFuelRatio
+        
+        InjectA = clamp(InjectA,0,1)
+        InjectB = clamp(InjectB,0,1)
+        Inject = clamp(InjectA + InjectB,0,2)
+        Blower = clamp(Blower,0,1)
+        Damper = clamp(Damper,0,1)
+        #local DraftFactor = max(Blower * 0.15,clamp((WheelRPM/750)*0.6,0,0.6)) + (Damper ? clamp((MPH/60)*0.4,0,0.4) : 0) + 0.1
+        local FPM = MPH * 88 #FEET??!!?? PER MINUTE??>>?
+        local BlowerCFM = lerp(0,20000,Blower) #3000-20000 CFM
+        local DamperCFM = DamperArea * FPM * Damper #Air mass flow through damper
+        local EPM = (WheelRPM*(2*CylinderCount)) #Exhausts Per Minute
+        local DraftCFM = EPM*(SmokeBoxVolume*0.8) * sqrt(ThrottleN) #Pull 80% of the smokebox's volume per exhaust * throttle (I think the math works out to that from EPM????)
+        local Choke = (1-clamp((GrateHeight-5)/3,0,1)) #Too much coal, starving the fire
+        local AirMassflow = (((BlowerCFM + DamperCFM + DraftCFM + 0.5)*AirDensity)/60)*Choke*FiremanDt #CFS/t (I hope)
+        
+        if(GrateMass > 0){
+            local BurnEff = AirMassflow/RequiredAir
+            
+            local ArrEq = 1/(1+2^(12-(0.0075*FireTemp)))
+                    #print(_HUD_PRINTCENTER,"" + ArrEq)
+                        #lerp(0,1,(FireTemp-900)/2700)
+                        
+                        #0.0025/lb/coal/second/grate sqin #*0.0025*GrateL*GrateW
+            BurnRate = (AirMassflow/AirFuelRatio)*(1+ArrEq)*FiremanDt #(ArrEq) #Burned this tick
+            
+            GrateMass -= (BurnRate)
+            #if(GrateMass < 0){GrateMass = 0}
+        }else{
+            GrateMass = 0
+            BurnRate = 0
         }
+        
+        FuelVolume = GrateMass/FuelDensity #Calculate coal volume
+        
+        FireboxOutput = BurnRate*(FuelEnergy) #BTU
+        FireTemp += (FireboxOutput/(AirHeatCapacity*FireboxMass)) #Increase temp
+        FireTemp = clamp(FireTemp,1000,3000) #Clamp it
+        
+        local FireFactor = lerp(0,1,(FireTemp-900)/(3000-900)) #Color factor
+        Firebox = vec(255,255*FireFactor,240*FireFactor^2)
+        BurnQuality = sqrt(FireFactor)
+        
+        #holoColor(FireHolo,Firebox)
+        
+        local GrateLFt = GrateL/12 #Convert to feet
+        local GrateWFt = GrateW/12
+        GrateHeight = (FuelVolume/(GrateLFt*GrateWFt))*12 #Convert back to inches
+        
+        #BOILER ------------------------------------------------------------------------------
+        
+        local PSIA = BoilerPSI + 14.7
+        local BoilingPoint = 212+(12*sqrt(PSIA-14.7)) #Potbob boiling in a sponge of shit
+        
+        #Transfer heat from firebox to water
+        #TempDiff = FireTemp - WaterTemp
+        HeatTransfered = FireTemp * lerp(0,1,(FireTemp-900)/(1500-900)) #Basic equation that transfers more heat at a higher temperature
+        WaterTemp += FireboxOutput/WaterMass #Water is 1:1 with BTU
+        FireTemp -= FireboxOutput/WaterMass #Decrease fire temp
+        WaterEnergy += FireboxOutput #Add thermal energy lost from fire to water, 1:1 for now
+        local LatentHeat = lerp(970.1,714.36,BoilerPSI/680)#42*sqrt(-WaterTemp + 740)#970.1 at 212 F
+        WaterEnthalpy = WaterEnergy
+        
+        #-k*(T-Ta)
+        #T - Water temp
+        #Ta - atmos temp
+        #-k transfer constant - steel is ~ 0.001/15
+        
+        #Boiler
+        
+        
+        if(Safeties){#Pop saftey valves
+           SteamMass -= 15*Dt #Exhaust 15lb of steam per second
+        }
+        
+        if(WaterTemp > BoilingPoint){#Let's boil some water
+            #EvapRate = (FireboxOutput/LatentHeat) #Lb/dT of steam/s, latent heat
+            
+            local Diff = WaterTemp - BoilingPoint #Temperature difference
+            local EnergyDiff = WaterMass*Diff #BTU of temperature difference
+            EvapRate = (EnergyDiff/LatentHeat)*Dt #Evaporate the amount of difference, should work for normal boiling scenarios and flashing?
+            #print(_HUD_PRINTCENTER,
+            #"Temp diff: " + Diff +
+            #"\nEnergy diff BTU: " + round(EnergyDiff,1))
+            
+            #local EnergyRelease = Diff
+            WaterTemp -= Diff*Dt #Decrease temperature
+            WaterEnergy -= EnergyDiff
+            SteamEnergy += EnergyDiff
+            
+        }else{#nvm
+            EvapRate = 0
+        }
+        
+        WaterTemp = max(AmbientTemp,WaterTemp)#Minimum ambient
+        
+        #Evaporate water mass
+        WaterMass -= (EvapRate)
+        WaterVolume = WaterMass/WaterDensity
+        
+        #Blowdown
+        local Blowdown = clamp(BlowdownA + BlowdownB,0,2)
+        if(Blowdown){
+            local BlowdownVolume = ((5/60)*WaterDensity)*FiremanDt*Blowdown
+            WaterVolume -= BlowdownVolume
+        }
+        
+        if(Inject & FillFactor < 0.95){#Inject water and alter temperature, don't fill if boiler is over 95% of fill
+            #local Orifice = _PI * 1.5^2
+            local InjectVolume = ((10/60)*WaterDensity)*FiremanDt*Inject #In 1 tick, 10 CFM at full blast
+            WaterVolume += InjectVolume #10 CFM of water #((BoilerCap/7.48) * FiremanDt * 0.005)*Inject
+            
+            #Equation for thermal difference
+            #((Vol1*F1) + (Vol2*F2))/(Vol1 + Vol2) = Final temperature
+            
+            WaterTemp = ((InjectVolume * (FeedwaterHeater ? WaterTemp*0.9 : AmbientTemp)) + (WaterVolume * WaterTemp))/(InjectVolume + WaterVolume)
+        }
+        
+        #Calculate water mass and clamp volume
+        WaterVolume = clamp(WaterVolume,0,(BoilerCap/7.48))
+        WaterMass = WaterDensity * WaterVolume
+        
+        #Determine fill height and sight glass
+        FillFactor = WaterVolume/BoilerVolume 
+        WaterHeight = lerp(0,BoilerD,FillFactor)
+        SightGlass = clamp(((WaterHeight-BoilerSoundMin)/SightGlassHeight),0,1)*100
+        
+        
+        #STEAM --------------------------------------------------------------------------------
+        
+        #Add evap rate to steam mass
+        SteamMass += EvapRate
+        SteamMass = max(0,SteamMass) #Clamp at 0
+        BoilerUllage = BoilerVolume*(1-FillFactor)#Empty space of boiler
+        
+        SteamSpecificVol = BoilerUllage/SteamMass #ft^3/lb
+        local GPSI = ((1/(SteamSpecificVol-0.05))*440)-16.5 #Rough curve from https://www.engineeringtoolbox.com/saturated-steam-properties-d_273.html
+        
+        BoilerPSI = max(0,GPSI)#clamp(GPSI,0,BoilerMaxPSI)
+        
+        
+        #SteamEnthalpy
+        
+        #SteamTemp = 0
+        
+        #SOUND --------------------------------------------------------------------------------
+        
+        local InjectS = sign(Inject)
+        if(changed(InjectS) & InjectS){
+            Pod:soundPlay("injector",0,InjectorOn)
+        }elseif(changed(sign(Inject)) & !InjectS){
+            soundStop("injector",1)
+            #SndHolo5:soundPlay("injector",0,InjectorOff)
+        }
+        soundVolume("injector",sqrt(Inject))
+        
+        local BlowerS = sign(Blower)
+        if(changed(BlowerS) & BlowerS){
+            Pod:soundPlay("blower",0,BlowerOn)
+        }elseif(changed(BlowerS) & !BlowerS){
+            #SndHolo5:soundPlay("blower",0,BlowerOff)
+            soundStop("blower",2)
+        }
+        soundVolume("blower",sqrt(Blower))
+        
+        local StokerS = sign(Stoker)
+        if(changed(StokerS) & StokerS){
+            Pod:soundPlay("stoker",0,StokerLoop)
+        }elseif(changed(StokerS) & !StokerS){
+            #Base:soundPlay("stoker",0,StokerOff)
+            soundStop("stoker",1)
+        }
+        soundVolume("stoker",sqrt(Stoker))
+        
+        local BlowdownS = sign(Blowdown)
+        if(changed(BlowdownS) & BlowdownS){
+            Pod:soundPlay("blowdown",0,BlowdownOn)
+        }elseif(changed(sign(BlowdownS)) & !BlowdownS){
+            soundStop("blowdown",1)
+        }
+        
+        #print(_HUD_PRINTCENTER,"InjectS " + InjectS + "\nBlowerS " + BlowerS + "\nBlower " + Blower)
+        
+        #print(_HUD_PRINTCENTER, "" + sign(Blower))
+        #WaterTemp -= ()
+        #[
+        print(_HUD_PRINTCENTER,
+            "Coal LBS: " + round(GrateMass,1) +
+            "\nCoal Volume: " + round(FuelVolume,2) +
+            "\nCoal Height: " + round(GrateHeight,1) +
+            "\nGrate Energy: " + round(GrateEnergy) +
+            #"\nTargetTemp: " + round(TheoreticalTemp) +
+            #"\nRequired Air: " + round(RequiredAir,1) +
+            "\nAirmass Lb/dT: " + round(AirMassflow,2) +
+            "\nBurn Rate Lb/dT:" + round(BurnRate,3) +
+            #"\nFirebox Output:" + round(FireboxOutput) +
+            "\nFirebox Temp:" + round(FireTemp,1) +
+            "\n\nWater Temp:" + round(WaterTemp,2) +
+            #"\nCrown Sheet Health:" + round(CrownSheetHealth) +
+            
+            #"\nWater Mass: " + round(WaterMass) +
+            #"\nWater Gal: " + round(WaterVolume*7.48) +
+            #"\nFill Factor: " + round(FillFactor,2) +
+            #"\nBTUs required to boil:" + round((212-WaterTemp)*WaterMass) +
+            "\nEvap Rate LB/s: " + round(EvapRate,1) +
+            "\nSteam mass: " + round(SteamMass,1) + 
+            "\nSteam volume: " + round(BoilerUllage)
+            #"\nSteam enthalpy: " + round(SteamEnergy,1) +
+            #"\nWater enthalpy: " + round(WaterEnergy,1)
+        )
+        ]#
+        BOILER_DATA = table(
+            "GrateMass" = round(GrateMass,1),
+            "GrateHeight" = round(GrateHeight,2),
+            "BurnRate"  = round(BurnRate,3),
+            "AirMassflow" = round(AirMassflow,2),
+            "FireTemp" = round(FireTemp,1),
+            "HeatLoss" = round(1-lerp(0,1,(FireTemp-900)/(1500-900))),
+            "WaterTemp" = round(WaterTemp,1),
+            "WaterMass" = round(WaterMass,1),
+            "WaterVolume" = round(WaterVolume,1),
+            "WaterHeight" = round(WaterHeight,1),
+            "SteamVolume" = round(BoilerUllage),
+            "SteamMass" = round(SteamMass,1),
+            "EvapRate" = round(EvapRate,3),
+            "SteamGenHr" = round((EvapRate/Dt)*3600,1),
+            "BoilingPoint" = round(BoilingPoint,1),
+            "LatentHeat"    = round(LatentHeat,1),
+            "PSIA" = round(PSIA,1),
+            "SteamSpecificVol" = round(SteamSpecificVol,1)
+            #"ArrEq" = round(ArrEq,1)
+        )
+    }else{
+        #[
+        if(Active){
+            FireTemp = 2000
+            local FireFactor = lerp(0,1,(FireTemp-900)/(3000-900)) #Color factor
+            Firebox = vec(255,255*FireFactor,240*FireFactor^2)
+            SteamMass = BoilerUllage
+            BoilerPSI = BoilerMaxPSI
+            SightGlass = 50
+            BurnQuality = 1
+        }else{
+            Firebox = vec(0,0,0)
+            SteamMass = 0
+            BoilerPSI = 0
+            FireTemp = 0
+            SightGlass = 50
+        }
+        ]#
     }
 })
 
-if(clk("interval") & Fireman){
-    #========Fireman Heartbeat
-    Coal += AddCoal*ShovelRate - BurnRate*(1+ 3*Damper)*(Active|Warmup)
-    Coal = clamp(Coal,0,200)
-    
-    Temp += (((Coal - 200)*(Coal))/(-10000) - 0.875*!Damper - BoilRate*(Temp > 75)*(1))*HeatRate*(Active|Warmup)
-    Temp = clamp(Temp,0,200)
-    
-    Water += AddWater*InjectRate - (Temp > 75)*BoilRate*(Temp/100)*(Active|Warmup)*0.5
-    Water = clamp(Water,0,200)
-    
-    Steam += (Temp > 75)*(Temp/100)*(Water - 200)*(Water)/(-10000) - (Throttle/3.5)*(abs(Reverser)) - AddWater*InjectRate*4
-    Steam = clamp(Steam,0,200)
-    
-    Firebox = vec(255,Temp,(Temp > 100)*(Temp - 100))*(Active|Warmup)
-    
-    if(Active & Steam < 75){
-        Active = 0
-        Warmup = 1
-        Throttle = 0
-        B:soundPlay(0,0,Fire)
-        soundStop(10)
-        soundStop(3)
-    }
-    #timer("heartbeat",500)
-    #print("Heartbeat")
-                                                                                                                                                                                                                                       #nuts balls even
-}
-
-timer("chuff",1/33,0,function(){#if(clk("Chuff")){
-    local DtC = 1/33
+timer("chuff",1/20,0,function(){#if(clk("Chuff")){
+    local DtC = 1/20
     local IntervalC = DtC*1000
-    timer("Chuff",IntervalC)
+    #timer("Chuff",IntervalC)
     
     #RPM = abs(round(((MPH/60)*63360)/Circumference,1))
     
     # (MPH * 336.13)/Diameter
     #RPM = abs((MPH*336.13)/Diameter)
     DPS = WheelRPM * 6 #Degrees per second
-    local ThrottleN = sqrt(Throttle/10)#abs(Throttle/10)
+    local ThrottleN = sqrt(ThrottleN)#abs(Throttle/10)
     #Period = (1/(RPM/60))
     
     WheelAng += round(DPS*DtC,3)
@@ -1343,6 +1664,9 @@ timer("chuff",1/33,0,function(){#if(clk("Chuff")){
         soundStop("LoopSound_DSP")
         
         if(DoBark == 1){
+            
+            ParticleBark = 1
+            
             if(SequentialBarks){ #Cycle through barks
                 CSound+=1
                 if(CSound>QuarterSounds:count()){CSound=1}
@@ -1396,154 +1720,78 @@ timer("chuff",1/33,0,function(){#if(clk("Chuff")){
 })
 
 #========Chat
-if(chatClk(O)){
-    local LS = O:lastSaid()
-    local Sentence = LS:explode(" ")
-    local CMD = Sentence[1,string]
-    local ARG = Sentence[2,string]
-    
-    if(Active){
-        #Engine On Commands
-        if(CMD==".throttle"){
-            hideChat(1)
-            Throttle = clamp(ARG:toNumber(),0,10)
-            printColor(vec(200),"[RSC] Setting Throttle to ",vec(255),Throttle:toString()+"/10")
-        }
-        if(CMD==".reverser"){
-            hideChat(1)
-            local Val = (1+DRV)*4
-            Reverser = round(clamp(ARG:toNumber()*Val,-Val,Val))/Val
-            printColor(vec(200),"[RSC] Setting Reverser to ",vec(255),Reverser:toString())
-            R8 = Reverser*8
-        }
-        if(CMD==".brake"){
-            hideChat(1)
-            if(ARG=="1"){
-                Brake = 1
-                Throttle = 0
-                #abSoft()
-                printColor(vec(200),"[RSC] Airbrakes ",vec(255,191,0),"Applied")
-            }elseif(ARG=="0"){
-                Brake = 0
-                #abRelease()
-                printColor(vec(200),"[RSC] Airbrakes ",vec(0,200,0),"Released")
-            }else{
-                Brake = 1
-                Throttle = 0
-                #abHard()
-                printColor(vec(200),"[RSC] Airbrakes ",vec(255,0,0),"EMERGENCY")
-            }
-        }
+event chat(Player:entity, Message:string, Team:number){
+    if(Player == O){
+        local LS = Message
+        local Sentence = LS:explode(" ")
+        local CMD = Sentence[1,string]
+        local ARG = Sentence[2,string]
         
-        if(CMD==".hpt"){
-            hideChat(1)
-            
-            carScan()
-            
-            printColor(vec(200),"[RSC] IHP/T " + floor(IHP/TrailingTons))
-            printColor(vec(200),"[RSC] " + floor(CarCount) + " cars")
-            printColor(vec(200),"[RSC] " + floor(TrailingTons) + " trailing tons")
-            printColor(vec(200),"[RSC] IHP " + IHP)
-        }
+        if(LS[1] == "."){hideChat(1)}
         
-    }else{
-        #Engine Off Commands
-        if(CMD==".fireman"){
-            hideChat(1)
-            Fireman = ARG:toNumber()
-            if(Fireman){
-                timer("heartbeat",100)
-                Coal = Water = 50
-                Temp = Steam = 0
-                printColor(vec(200),"[RSC] Manual Fireman ",vec(0,200,0),"Enabled")
-            }else{
-                
-                Coal = Steam = Temp = Water = 100
-                printColor(vec(200),"[RSC] Manual Fireman ",vec(200,0,0),"Disabled")
+        if(Active){
+            #Engine On Commands
+            if(CMD==".throttle"){
+                hideChat(1)
+                Throttle = clamp(ARG:toNumber(),0,10)
+                printColor(vec(200),"[RSC] Setting Throttle to ",vec(255),Throttle:toString()+"/10")
             }
-        }
-    }
-    #Anytime Commands
-    if(CMD==".ignite"){
-        hideChat(1)
-        if(ARG:toNumber()){
-            if(Fireman){
-                
-                Warmup = 1
-                B:soundPlay(0,0,Fire)
-                printColor(vec(200),"[RSC] Warming Up")
-            }else{
-                Active = 1
-                Warmup = 0
-                Firebox = vec(255,Temp,(Temp > 100)*(Temp - 100))
-                B:soundPlay(0,0,Idle)
-                soundPitch(10,0)
-                soundPitch("LOOPDSP",0)
-                printColor(vec(200),"[RSC] Boiler On")
+            if(CMD==".reverser"){
+                hideChat(1)
+                local Val = (1+DRV)*4
+                Reverser = round(clamp(ARG:toNumber()*Val,-Val,Val))/Val
+                printColor(vec(200),"[RSC] Setting Reverser to ",vec(255),Reverser:toString())
+                R8 = Reverser*8
             }
+            if(CMD==".brake"){
+                hideChat(1)
+                if(ARG=="1"){
+                    Brake = 1
+                    Throttle = 0
+                    #abSoft()
+                    printColor(vec(200),"[RSC] Airbrakes ",vec(255,191,0),"Applied")
+                }elseif(ARG=="0"){
+                    Brake = 0
+                    #abRelease()
+                    printColor(vec(200),"[RSC] Airbrakes ",vec(0,200,0),"Released")
+                }else{
+                    Brake = 1
+                    Throttle = 0
+                    #abHard()
+                    printColor(vec(200),"[RSC] Airbrakes ",vec(255,0,0),"EMERGENCY")
+                }
+            }
+            
+            if(CMD == ".explode"){
+                hideChat(1)
+                CrownSheetHealth = 0
+                print("coming right up")
+            }
+            
+            if(CMD==".hpt"){
+                hideChat(1)
+                
+                carScan()
+                
+                printColor(vec(200),"[RSC] IHP/T " + floor(IHP/TrailingTons))
+                printColor(vec(200),"[RSC] IHP " + IHP)
+                printColor(vec(200),"[RSC] " + floor(TrailingTons) + " trailing tons")
+                printColor(vec(200),"[RSC] " + floor(CarCount) + " cars")
+            }
+            
         }else{
-            Warmup = Active = 0
-            Reverser = Throttle = 0
-            Coal = Water = Fireman ? 50 : 100
-            Temp = Steam = Fireman ? 0 : 100
-            Cocks = 0
-            soundStop(0)
-            soundStop(10)
-            soundStop("LOOPDSP")
-            soundStop(3)
-            printColor(vec(200),"[RSC] Boiler Off")
-            Firebox = vec()
-        }
-    }
-    if(CMD==".mul"){
-        hideChat(1)
-        Mul = ARG:toNumber()
-        printColor(vec(200),"[RSC] Force Mul set to ",vec(0,0,255),Mul:toString())
-    }
-    if(CMD==".band"){
-        hideChat(1)
-        Band = ARG:toNumber()
-        printColor(vec(200),"[RSC] 'Power Band' set to ",vec(0,0,255),Band:toString()+" MPH")
-    }
-    if(CMD==".brakemul"){
-        hideChat(1)
-        BrakeMul = ARG:toNumber()
-        printColor(vec(200),"[RSC] Braking Mul set to ",vec(0,0,255),BrakeMul:toString())
-    }
-    if(CMD==".coal"){
-            hideChat(1)
-            if(Fireman){
-                Coal = clamp(ARG:toNumber(),0,200)
-                printColor(vec(200),"[RSC] Coal Level set to ",vec(36),Coal:toString()+"%")
-            }else{
-                printColor(vec(200),"[RSC] Manual Fireman Mode is currently Disabled")
+            #Engine Off Commands
+            if(CMD==".fireman"){
+                
             }
         }
-        if(CMD==".water"){
-            hideChat(1)
-            if(Fireman){
-                Water = clamp(ARG:toNumber(),0,200)
-                printColor(vec(200),"[RSC] Water Level set to ",vec(36),Water:toString()+"%")
-            }else{
-                printColor(vec(200),"[RSC] Manual Fireman Mode is currently Disabled")
-            }
-        }
-        if(CMD==".temp"){
-            hideChat(1)
-            if(Fireman){
-                Temp = clamp(ARG:toNumber(),0,200)
-                printColor(vec(200),"[RSC]Temperature set to ",vec(36),Temp:toString()+"%")
-            }else{
-                printColor(vec(200),"[RSC] Manual Fireman Mode is currently Disabled")
-            }
-        }
+        #Anytime Commands
         if(CMD==".steam"){
             hideChat(1)
             if(Fireman){
-                Steam = clamp(ARG:toNumber(),0,200)
-                printColor(vec(200),"[RSC] Steam Pressure set to ",vec(36),Steam:toString()+"%")
+                
             }else{
-                printColor(vec(200),"[RSC] Manual Fireman Mode is currently Disabled")
+                
             }
         }
         if(CMD==".commands"){
@@ -1594,22 +1842,8 @@ if(chatClk(O)){
                     break
             }
         }
-    
+    }
 }
 
 
-DATA_OUT = table(
-    "te_lbf" = TE_LBF,
-    "te_force" = TE_Force,
-    "be_force" = BrakingForce,
-    "mep"      = MEP,
-    "mph" = MPH,
-    "reverser" = Reverser,
-    "throttle" = Throttle,
-    "boiler_psi" = BoilerPSI,
-    "air_bp" = BrakePipe,
-    "air_bc" = BrakeCyl,
-    "air_mr" = MainRes,
-    "air_er" = EqualRes
-)
 CPU = floor(cpuUsage()*1000000)
