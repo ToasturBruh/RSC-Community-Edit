@@ -9,7 +9,7 @@ if(first() | dupefinished()){
     
     Scale = 1 #Overall scale.
     ArcScale = 1 #Scale of the position indicator.
-    ArcAngle = 90 #Offset rotation
+    ArcAngle = 0 #Offset rotation
     
     FactorFactor = 1 #By default the output is between 0-1, use this to change it. (Example: a value of 255 will output 0-255 as opposed to 0-1)
     
