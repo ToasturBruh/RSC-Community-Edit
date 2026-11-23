@@ -61,7 +61,7 @@
 
 
 #Community Edit V1.5.0
-Version = "1.5.1"
+Version = "1.5.2"
 MinConfigVer = "1.1.0"
 MinControlVer = "1.0.0"
 
@@ -137,7 +137,7 @@ if(first()|dupefinished()){
     #Locomotive config to use
     #include "rsc_community_edit/locomotives/s1a_0-8-0" 
     
-    Fireman     = 1 #If 0, automatic fireman. If 1, fireman is required.
+    Fireman     = 0 #If 0, automatic fireman. If 1, fireman is required.
     Coldstart   = 0 #If manual firing is enabled, require a cold start? Boiler and fire will start zero'd out.
     
     #--------------
@@ -1231,12 +1231,13 @@ timer("think",Dt,0,function(){
     ParticleBark -= (4 * Dt)
     ParticleBark = clamp(ParticleBark,0,1)
     
+    #[
     print(_HUD_PRINTCENTER,
     "QUALITY " + P_R +
     "\nVOLUME " + P_C +
     "\nQUALITY " + BurnQuality +
     "\nBARK" + ParticleBark)
-    
+    ]#
     
     if(CrownSheetHealth <= 0){#I have died in a boiler explosion.
         Base:applyForce(randvec(vec(-1,-1,-1),vec(1,1,1))*1000000*Base:mass())
