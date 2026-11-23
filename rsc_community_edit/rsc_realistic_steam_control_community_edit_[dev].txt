@@ -57,7 +57,7 @@
 #@outputs IsPlaying
 
 @trigger Ignite ShovelCoal
-@model models/venompapa/wirecdlock.mdl
+@model models/beer/wiremod/watersensor.mdl
 
 
 #Community Edit V1.5.0
@@ -82,8 +82,11 @@ SETUP FOR HOLO WHEELBASE:
 Insert and initalize these values inside your wheel code:
 [[----------------------------------------
 
-@inputs MPH SlipMPH
-@persist DPS WheelAng
+@inputs SlipMPH
+@persist MPH Vel DPS WheelAng
+
+Vel = Base:velL():x() #Change :x() if it's reading the wrong axis for speed.
+MPH = Vel/17.6
 
 WheelRPM = ((MPH+SlipMPH)*336)/Diameter
 DPS = WheelRPM * 6 #Degrees per second
@@ -100,10 +103,11 @@ SETUP INSTRUCTIONS:
     2.1 - If the locomotive uses a HOLO base, mark all sliders/axles to the entity marker INCLUDING leading/trailing trucks.
     2.2 - DO NOT USE HYPERSLIDERS!!!!!!!! They will drag the train's speed down such that it will be unusuable, please use normal sliders/axles (e.g. Bobster's).
 3 - Wire Drivers[ARRAY] to the entity marker if it uses a PROP base, otherwise wire Trucks[ARRAY] to the entity marker.
-4 - Wire Pod:entity to the locomotive's pod controller Entity:entity output.
+4 - Wire Pod:entity to the locomotive's pod controller Entity:entity output or chair directly.
 5 - Wire Ignite to either a pod controller key or a NON-TOGGLED button.
-6 - If manual fireman mode is desired: wire Damper, AddCoal, and AddWater to either pod controller keys or wire buttons (Can be toggled or non-toggled).
+6 - If manual fireman mode is desired: wire ShovelCoal, Stoker, InjectA/B, Blowdown A/B, Blower and Damper to either pod controller keys or wire buttons (Can be toggled or non-toggled).
 7 - Set up screens, gauges, indicators, heiroglyphs, whatever so you can see relevant information like speed, throttle setting, water levels, etc.
+    7.1 - If you intent on adding support for manual firing, make use of the variable valve E2 included in the 'extras' folder.
 
 The rest of the steps are optional but neat.
 8 - Put a wire light on the firebox and wire it to Firebox[VECTOR]. It'll glow in accordance with the temperature level!
@@ -133,7 +137,7 @@ if(first()|dupefinished()){
     #Locomotive config to use
     #include "rsc_community_edit/locomotives/s1a_0-8-0" 
     
-    Fireman     = 0 #If 0, automatic fireman. If 1, fireman is required.
+    Fireman     = 1 #If 0, automatic fireman. If 1, fireman is required.
     Coldstart   = 0 #If manual firing is enabled, require a cold start? Boiler and fire will start zero'd out.
     
     #--------------
@@ -158,6 +162,8 @@ if(first()|dupefinished()){
     Base = B
     O = owner()
     #runOnChat(1)
+    
+    if(entity():model() == "models/beer/wiremod/watersensor.mdl"){entity():setMaterial("models/toast/rsc_chip")}
     
     IHP = HeatingSurfaceArea/IHP_Efficiency #Approximate IHP
     #MaxEvapRate = HeatingSurfaceArea*60 #55 lb/hr of steam per sqft of firebox area
@@ -995,12 +1001,12 @@ timer("think",Dt,0,function(){
             }
             carScan()
             #Brake Force and Physprops (stolen from MLC)
-            #CARFORCE = (CarCount * 2.5 * (BrakeCyl * 78.5 * 6.49 * (( 19.5 / (68 + MPH) ) + 0.0206))) #MLC Car Brake Force Equation, the 0.0206 is a FOA correction factor
-            #LOCOFORCE = (Cyl * 50 * Axles * 5.65 * 2 * (ClaspBrakes ?  4.7 / (15 + MPH) : ( 19.5 / (68 + MPH)))) #MLC Independent Brake Force Equation
+            #CARFORCE   = (CarCount * 2.5 * (BrakeCyl * 78.5 * 6.49 * (( 19.5 / (68 + MPH) ) + 0.0206))) #MLC Car Brake Force Equation, the 0.0206 is a FOA correction factor
+            #LOCOFORCE  = (Cyl * 50 * Axles * 5.65 * 2 * (ClaspBrakes ?  4.7 / (15 + MPH) : ( 19.5 / (68 + MPH)))) #MLC Independent Brake Force Equation
             
             local ClaspBrakes = 0
-            Train_BF = (CarCount * 2.5 * ((90-BrakePipe) * 78.5 * 6.49 * (( 19.5 / (68 + MPH) ) + 0.0206)))
-            Loco_BF = (BrakeCyl * 50 * Axles * 5.65 * 2 * (ClaspBrakes ?  4.7 / (15 + MPH) : ( 19.5 / (68 + MPH))))
+            Train_BF    = (CarCount * 2.5 * ((90-BrakePipe) * 78.5 * 6.49 * (( 19.5 / (68 + MPH) ) + 0.0206)))
+            Loco_BF     = (BrakeCyl * 50 * Axles * 5.65 * 2 * (ClaspBrakes ?  4.7 / (15 + MPH) : ( 19.5 / (68 + MPH))))
             
             
             #local TBF = CarCount*(90-BrakePipe)*MaxTrainBrakeForce
@@ -1052,8 +1058,8 @@ timer("think",Dt,0,function(){
         
         local Windup = Dt/4
         local TE_Slip = (TE_LBF * ThrottleN * TE_Spike)*(Sanding ? 0.75 : 1) #Find wheelslip threshold, TE * Throttle * TE Spike * Sanding
-        if(TE_Slip > SlipLimit){SlipRate += (1*Windup)}
-        if(SlipRate > 0 & TE_Slip < (SlipLimit*0.75)){SlipRate -= (1*Windup*4)}
+        if((TE_Slip > SlipLimit) & Moving){SlipRate += (1*Windup)}
+        if((SlipRate > 0 & TE_Slip < (SlipLimit*0.75)) | !Moving){SlipRate -= (1*Windup*4)}
         TE_Spike = 1
         
         SlipRate = clamp(SlipRate,0,1)
@@ -1219,17 +1225,18 @@ timer("think",Dt,0,function(){
     #print(_HUD_PRINTCENTER,"Soot " + Soot + "\nQality " + BurnQuality + "\nBurn Factor " + BurnFactor)
     
     local P_R = 1 + round((PStages:count()-1)*BurnFactor) #Row, quality
-    local P_C = 1 + ceil((PStages[P_R,table]:count()-1)*ThrottleN)*(WheelRPM > LoopThresholds[1,number] ? 1 : ParticleBark) #Column, volume
+    local P_C = 1 + ceil((PStages[P_R,table]:count()-1)*ThrottleN)*(WheelRPM > LoopThresholds[1,number] ? 1 : ParticleBark > 0) #Column, volume
     
     Particle = PStages[P_R,table][P_C,string]
-    ParticleBark = 0
+    ParticleBark -= (4 * Dt)
+    ParticleBark = clamp(ParticleBark,0,1)
     
-    #[
     print(_HUD_PRINTCENTER,
     "QUALITY " + P_R +
     "\nVOLUME " + P_C +
-    "\nQUALITY " + BurnQuality)
-    ]#
+    "\nQUALITY " + BurnQuality +
+    "\nBARK" + ParticleBark)
+    
     
     if(CrownSheetHealth <= 0){#I have died in a boiler explosion.
         Base:applyForce(randvec(vec(-1,-1,-1),vec(1,1,1))*1000000*Base:mass())
@@ -1398,6 +1405,7 @@ timer("fireman",FiremanDt,0,function(){
         local Choke = (1-clamp((GrateHeight-5)/3,0,1)) #Too much coal, starving the fire
         local AirMassflow = (((BlowerCFM + DamperCFM + DraftCFM + 0.5)*AirDensity)/60)*Choke*FiremanDt #CFS/t (I hope)
         
+        #We burn a little coal
         if(GrateMass > 0){
             local BurnEff = AirMassflow/RequiredAir
             
@@ -1417,16 +1425,19 @@ timer("fireman",FiremanDt,0,function(){
         
         FuelVolume = GrateMass/FuelDensity #Calculate coal volume
         
+        #Fire thermal output to temperature
         FireboxOutput = BurnRate*(FuelEnergy) #BTU
         FireTemp += (FireboxOutput/(AirHeatCapacity*FireboxMass)) #Increase temp
         FireTemp = clamp(FireTemp,1000,3000) #Clamp it
         
+        #Fire color
         local FireFactor = lerp(0,1,(FireTemp-900)/(3000-900)) #Color factor
         Firebox = vec(255,255*FireFactor,240*FireFactor^2)
         BurnQuality = sqrt(FireFactor)
         
         #holoColor(FireHolo,Firebox)
         
+        #Determine fuel height on grate
         local GrateLFt = GrateL/12 #Convert to feet
         local GrateWFt = GrateW/12
         GrateHeight = (FuelVolume/(GrateLFt*GrateWFt))*12 #Convert back to inches
@@ -1635,6 +1646,7 @@ timer("fireman",FiremanDt,0,function(){
     }
 })
 
+#Sound simulation
 timer("chuff",1/20,0,function(){#if(clk("Chuff")){
     local DtC = 1/20
     local IntervalC = DtC*1000
@@ -1665,7 +1677,7 @@ timer("chuff",1/20,0,function(){#if(clk("Chuff")){
         
         if(DoBark == 1){
             
-            ParticleBark = 1
+            ParticleBark += 1
             
             if(SequentialBarks){ #Cycle through barks
                 CSound+=1
@@ -1773,7 +1785,7 @@ event chat(Player:entity, Message:string, Team:number){
                 
                 carScan()
                 
-                printColor(vec(200),"[RSC] IHP/T " + floor(IHP/TrailingTons))
+                printColor(vec(200),"[RSC] IHP/T " + floor(IHP/TrailingTons,2))
                 printColor(vec(200),"[RSC] IHP " + IHP)
                 printColor(vec(200),"[RSC] " + floor(TrailingTons) + " trailing tons")
                 printColor(vec(200),"[RSC] " + floor(CarCount) + " cars")
